@@ -283,6 +283,10 @@
                     <requiredTag>authorized</requiredTag>
                     <requiredTag>unauthorized</requiredTag>
                     <requiredTag>forbidden</requiredTag>
+                    <!-- tag semantici per classe di vulnerabilità OWASP A01: il build fallisce se manca copertura -->
+                    <requiredTag>object-level</requiredTag>
+                    <requiredTag>function-level</requiredTag>
+                    <requiredTag>field-level</requiredTag>
                   </requiredTags>
                   <failOnMissingTag>true</failOnMissingTag>
                 </configuration>

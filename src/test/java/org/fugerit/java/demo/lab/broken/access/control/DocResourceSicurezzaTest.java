@@ -198,6 +198,7 @@ class DocResourceSicurezzaTest {
     @DisplayName("(200) trova persona con ruolo autorizzato, ruolo utente 'admin', 'user' e 'guest'.")
     @Tag("security")
     @Tag("authorized")
+    @Tag("object-level")
     @TestSecurity(user = "USER2", roles = { "guest", "user", "admin" })
     void testFindPersonOkAdmin() {
         String responseBody = given()
@@ -211,6 +212,7 @@ class DocResourceSicurezzaTest {
     @DisplayName("(200) trova persona con ruolo autorizzato, ruolo utente 'user' e 'guest'.")
     @Tag("security")
     @Tag("authorized")
+    @Tag("object-level")
     @TestSecurity(user = "USER1", roles = { "guest", "user" })
     void testFindPersonOkUser() {
         String responseBody = given()
@@ -225,6 +227,7 @@ class DocResourceSicurezzaTest {
     @DisplayName("VULNERABILITY: (4) - (403) trova persona con ruolo NON autorizzato, ruolo utente 'user' e 'guest'.")
     @Tag("security")
     @Tag("forbidden")
+    @Tag("object-level")
     @TestSecurity(user = "USER1", roles = { "guest", "user" })
     void testFindPersonKoForbidden() {
         given()
@@ -236,6 +239,7 @@ class DocResourceSicurezzaTest {
     @DisplayName("VULNERABILITY: (1) - (403) Un utente che non esiste, restituisce un forbidden per evitare object enumeration.")
     @Tag("security")
     @Tag("forbidden")
+    @Tag("object-level")
     @TestSecurity(user = "USER1", roles = { "guest", "user" })
     void testFindPersonKoNotFound() {
         given()

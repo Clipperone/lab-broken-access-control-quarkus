@@ -1,5 +1,13 @@
 quarkus:
 
+  # Deny-by-default (defense in depth): ogni endpoint JAX-RS PRIVO di annotazione di sicurezza
+  # (@RolesAllowed / @PermitAll / @Authenticated / @DenyAll) viene NEGATO automaticamente.
+  # Mitiga in modo strutturale la classe "Missing Function Level Access Control" (vuln BONUS X):
+  # dimenticare l'annotazione non lascia più un endpoint pubblico per errore.
+  security:
+    jaxrs:
+      deny-unannotated-endpoints: true
+
   datasource:
     db-kind: h2
     jdbc:

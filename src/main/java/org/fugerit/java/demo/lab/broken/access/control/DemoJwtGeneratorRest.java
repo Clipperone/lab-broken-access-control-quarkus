@@ -1,6 +1,8 @@
 package org.fugerit.java.demo.lab.broken.access.control;
 
+import io.quarkus.arc.profile.UnlessBuildProfile;
 import io.smallrye.jwt.build.Jwt;
+import jakarta.annotation.security.PermitAll;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -17,8 +19,24 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 
+/**
+ * Endpoint dimostrativo per la generazione di JWT.
+ *
+ * <p>
+ * LEZIONE DI SICUREZZA: questo endpoint conia token con ruoli arbitrari ed è un classico esempio di
+ * "broken access control" se lasciato attivo in produzione. Per questo:
+ * </p>
+ * <ul>
+ * <li>{@code @UnlessBuildProfile("prod")} → il bean (e quindi l'endpoint REST) NON viene registrato
+ * nel profilo {@code prod}: in produzione l'autenticazione deve passare da un IDP esterno.</li>
+ * <li>{@code @PermitAll} → è deliberatamente pubblico (in dev/test). Reso esplicito perché, con
+ * {@code quarkus.security.jaxrs.deny-unannotated-endpoints=true} (deny-by-default), un endpoint
+ * privo di annotazione di sicurezza verrebbe altrimenti negato.</li>
+ * </ul>
+ */
 @Slf4j
 @ApplicationScoped
+@UnlessBuildProfile("prod")
 @Path("/demo")
 public class DemoJwtGeneratorRest {
 
@@ -32,6 +50,7 @@ public class DemoJwtGeneratorRest {
     @GET
     @Produces("text/plain")
     @Path("/{roles}.txt")
+    @PermitAll
     public String newToken(@PathParam("roles") String roles) {
         return generateToken("DEMOUSER", roles.split(","));
     }
