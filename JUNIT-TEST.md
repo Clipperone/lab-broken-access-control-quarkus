@@ -23,4 +23,4 @@ e la copertura delle classi di sicurezza è verificata dal gate `junit5-tag-chec
 1. **`@TestSecurity`** — inietta utente e ruoli nel contesto di sicurezza, senza JWT reale. Veloce e leggibile, ideale per fissare *una* identità per test.
 2. **JWT reale via RestAssured** — `.header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateUserToken())`. Necessario per scenari **multi-identità** nello stesso test (es. *admin crea, user modifica*) e per testare il ciclo completo di verifica del token.
 
-> Per la guida completa su *come progettare* questi test (anatomia, ponte SAST/DAST, pattern e anti-pattern, percorso junior/senior), vedi **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)**.
+> Per la guida completa su *come progettare* questi test (anatomia, ponte SAST/DAST, pattern e anti-pattern, percorso a difficoltà incrementale), vedi **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)**.

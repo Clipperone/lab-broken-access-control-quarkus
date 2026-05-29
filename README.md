@@ -42,8 +42,8 @@ Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A
 
 Oltre al laboratorio, il progetto è usato come **riferimento per scrivere unit test di sicurezza sui
 controlli di autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. La guida completa
-— anatomia di un test, **ponte SAST/DAST → unit test**, pattern/anti-pattern, percorso junior/senior e
-matrice di copertura — è in **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)**.
+— anatomia di un test, **ponte SAST/DAST → unit test**, pattern/anti-pattern, percorso a difficoltà
+incrementale (riferimenti semplici e complessi) e matrice di copertura — è in **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)**.
 
 Scenari di riferimento aggiunti (esempi già corretti, con test esemplari):
 
@@ -259,18 +259,21 @@ Esiste una base dati di persone (sono entità di dominio, non utenti). La tabell
 
 L'applicazione è configurata per gestire 3 ruoli e 4 path, che generano lo stesso documento in formati diversi. Non tutti i ruoli sono autorizzati a generare ogni path. Ecco la mappa dei permessi:
 
-| Path                        | Output      | Ruoli autorizzati  | Metodo http |
-|-----------------------------|-------------|--------------------|-------------|
-| `/doc/example.md` (*)       | 📝 MarkDown | admin, user, guest | GET         |
-| `/doc/example.adoc`         | 📄 AsciiDoc | admin              | GET         |
-| `/doc/example.html` (*)     | 🌐 HTML     | admin, user        | GET         |
-| `/doc/example.pdf`          | 📑 PDF      | admin              | GET         |
-| `/doc/person/list` (*)      | 📋 JSON     | admin, user        | GET         |
-| `/doc/person/find/{id}` (*) | 📋 JSON     | admin, user        | GET         |
-| `/doc/person/add`           | 📋 JSON     | admin              | POST        |
-| `/doc/person/delete/{id}`   | 📋 JSON     | admin              | DELETE      |
+| Path                          | Output      | Ruoli autorizzati  | Metodo http |
+|-------------------------------|-------------|--------------------|-------------|
+| `/doc/example.md` (*)         | 📝 MarkDown | admin, user, guest | GET         |
+| `/doc/example.adoc`           | 📄 AsciiDoc | admin              | GET         |
+| `/doc/example.html` (*)       | 🌐 HTML     | admin, user        | GET         |
+| `/doc/example.pdf`            | 📑 PDF      | admin              | GET         |
+| `/doc/person/list` (*)        | 📋 JSON     | admin, user        | GET         |
+| `/doc/person/find/{uuid}` (*) | 📋 JSON     | admin, user        | GET         |
+| `/doc/person/add`             | 📋 JSON     | admin              | POST        |
+| `/doc/person/edit/{uuid}`     | 📋 JSON     | admin, user (**)   | PUT         |
+| `/doc/person/delete/{uuid}`   | 📋 JSON     | admin              | DELETE      |
 
 > (*) Eccetto gli utenti con ruolo 'admin', su questi path potrebbe esserci una limitazione ai dati mostrati in base al ruolo minimo richiesto.
+
+> (**) Il ruolo 'user' può modificare solo i campi anagrafici (nome, cognome, titolo); il campo privilegiato `minRole` è modificabile solo da 'admin' (autorizzazione a livello di campo).
 
 **Ruoli e permessi dettagliati:**
 

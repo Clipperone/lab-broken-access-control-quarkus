@@ -7,24 +7,30 @@
 
 ## Indice
 
-- [Scopo e destinatari](#scopo-e-destinatari)
-- [Autenticazione vs Autorizzazione (401 vs 403)](#autenticazione-vs-autorizzazione-401-vs-403)
-- [Le classi di Broken Access Control coperte](#le-classi-di-broken-access-control-coperte)
-- [Anatomia di un security unit test di autorizzazione](#anatomia-di-un-security-unit-test-di-autorizzazione)
-- [Ponte SAST/DAST → unit test](#ponte-sastdast--unit-test)
-- [Matrice di copertura](#matrice-di-copertura)
-- [Catalogo pattern & anti-pattern](#catalogo-pattern--anti-pattern)
-- [Learning path](#learning-path)
-- [Checklist: aggiungere un nuovo security test](#checklist-aggiungere-un-nuovo-security-test)
-- [Comandi](#comandi)
+- [Guida ai Security Unit Test per i controlli di autorizzazione](#guida-ai-security-unit-test-per-i-controlli-di-autorizzazione)
+  - [Indice](#indice)
+  - [Scopo e approccio](#scopo-e-approccio)
+  - [Autenticazione vs Autorizzazione (401 vs 403)](#autenticazione-vs-autorizzazione-401-vs-403)
+  - [Le classi di Broken Access Control coperte](#le-classi-di-broken-access-control-coperte)
+  - [Anatomia di uno Unit Test per il controllo autorizzativo](#anatomia-di-uno-unit-test-per-il-controllo-autorizzativo)
+  - [Ponte SAST/DAST → unit test](#ponte-sastdast--unit-test)
+  - [Matrice di copertura](#matrice-di-copertura)
+  - [Catalogo pattern \& anti-pattern](#catalogo-pattern--anti-pattern)
+  - [Learning path](#learning-path)
+    - [Riferimenti semplici — esercizi hands-on (TDD)](#riferimenti-semplici--esercizi-hands-on-tdd)
+    - [Riferimenti complessi — esempi ed estensione](#riferimenti-complessi--esempi-ed-estensione)
+  - [Checklist: aggiungere un nuovo security test](#checklist-aggiungere-un-nuovo-security-test)
+  - [Comandi](#comandi)
 
-## Scopo e destinatari
+## Scopo e approccio
 
 L'obiettivo è formare gli sviluppatori a scrivere, **nel proprio codice applicativo**, test automatici
-che verifichino i controlli autorizzativi. Due percorsi (vedi [Learning path](#learning-path)):
+che verifichino i controlli autorizzativi. Esercizi ed esempi hanno **difficoltà incrementale**, per
+fornire riferimenti sia semplici sia complessi da applicare all'interno del proprio codice
+(vedi [Learning path](#learning-path)):
 
-- **Junior** → esercizi hands-on TDD: parti da una vulnerabilità, fai fallire il test, applica la correzione.
-- **Senior** → esempi di riferimento da replicare, estensione della copertura, nuance architetturali.
+- **Riferimenti semplici** → esercizi hands-on TDD: parti da una vulnerabilità, fai fallire il test, applica la correzione.
+- **Riferimenti complessi** → esempi da replicare, estensione della copertura, nuance architetturali.
 
 Il focus è l'**autorizzazione**, *non* l'autenticazione.
 
@@ -48,9 +54,9 @@ i test 401 esistono (`DocResourceSicurezzaTest`) ma sono test di *autenticazione
 | **Mass assignment / Field-Level Authorization** | `field-level` | il client non controlla campi server-managed; un campo privilegiato è modificabile solo dal ruolo idoneo | [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java) |
 | **Data filtering per ruolo** (escalation orizzontale) | `authorized` + `security` | liste/documenti mostrano solo i dati consentiti al ruolo | `DocResourceSicurezzaTest.testListPersonsResultKo` / `testOkMarkDownConVerificaContenutoUser` |
 
-## Anatomia di un security unit test di autorizzazione
+## Anatomia di uno Unit Test per il controllo autorizzativo
 
-Struttura **given / when / then** con RestAssured, e **due assert**: lo *status* e l'*effetto* (corpo/dati).
+Struttura del test **given / when / then** con RestAssured, e **due assert**: lo *status* e l'*effetto* (corpo/dati).
 
 ```java
 @Test
@@ -70,11 +76,11 @@ void testEditPersonUserCannotChangeMinRole() {
 
 Principi:
 
-1. **Sempre il caso negativo *e* quello positivo.** Il 403 dimostra che il controllo c'è; il 200 dimostra che non hai rotto la funzionalità.
-2. **Verifica l'effetto, non solo lo status.** Es. dopo una modifica, controlla che il campo privilegiato sia *rimasto invariato* (`testEditPersonUserCanEditAnagraphicFields`), o che la lista *non contenga* i dati riservati (`testListPersonsResultKo`).
+1. **Scrivere sempre** il caso negativo *e* quello positivo. Il 403 dimostra che il controllo c'è; il 200 dimostra che non hai rotto la funzionalità.
+2. **Verificare l'effetto, non solo lo status.** Es. dopo una modifica, controlla che il campo testato sia *rimasto invariato* (`testEditPersonUserCanEditAnagraphicFields`), o che la lista *non contenga* i dati riservati (`testListPersonsResultKo`).
 3. **Identità: `@TestSecurity` o JWT.** Usa `@TestSecurity(roles=...)` per fissare una identità singola; usa i JWT di `DemoJwtGeneratorRest` quando un test richiede **più identità** (es. *admin crea, user modifica*).
 4. **Isola i dati.** Non mutare i dati pre-caricati: crea dati freschi nel test (vedi `createPersonAsAdmin`).
-5. **Messaggi di assert utili.** `assertEquals("guest", minRoleDopo, "minRole non deve cambiare ...")` aiuta chi legge il fallimento.
+5. **Messaggi di assert utili.** `assertEquals("guest", minRoleDopo, "minRole non deve cambiare ...")` aiuta chi legge in caso di test fallito.
 
 ## Ponte SAST/DAST → unit test
 
@@ -119,7 +125,7 @@ Esito atteso per **endpoint × ruolo** (✅ = test presente). Le celle senza tes
 - Assert su *status + effetto*, con messaggio esplicativo.
 - Tag a tre livelli: `security` (generico) + esito (`authorized`/`forbidden`) + classe (`object-level`/`function-level`/`field-level`).
 - Dati di test creati nel test, non mutazione del seed.
-- Per i campi privilegiati: autorizzazione **lato server**; la validazione di formato (whitelist) è un filtro aggiuntivo, non un controllo di autorizzazione.
+- Per i campi privilegiati: autorizzazione sempre **lato server** con dati prelevati **lato server**; la validazione di formato (whitelist) è un filtro aggiuntivo, non un controllo di autorizzazione.
 
 **Anti-pattern (evita):**
 - ❌ JWT hardcoded lunghissimi nei sorgenti (difficili da mantenere; usali solo per casi specifici come "token scaduto").
@@ -131,13 +137,13 @@ Esito atteso per **endpoint × ruolo** (✅ = test presente). Le celle senza tes
 
 ## Learning path
 
-### Track junior (hands-on TDD)
+### Riferimenti semplici — esercizi hands-on (TDD)
 1. Leggi [Autenticazione vs Autorizzazione](#autenticazione-vs-autorizzazione-401-vs-403).
 2. Sul branch vulnerabile, per ogni `// VULNERABILITY: (n)`: esegui i test, osserva il rosso, applica la correzione fino al verde.
 3. Estendi al nuovo scenario field-level/function-level seguendo gli esempi di riferimento.
 4. Verifica con `mvn verify -P security`.
 
-### Track senior (riferimento + estensione)
+### Riferimenti complessi — esempi ed estensione
 1. Studia [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java) e [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java).
 2. Completa la [matrice di copertura](#matrice-di-copertura) per le celle senza test (es. `guest` su `list`/`find`).
 3. Affronta le nuance: modello dei ruoli (il filtro `minRole in (...)` è *set-membership*, non gerarchia), separazione dei DTO per ruolo, deny-by-default.
