@@ -26,6 +26,8 @@ Definiamo i gruppi di test con cui vogliamo classificare i nostri test.
 | `object-level`   | Broken Object Level Authorization (BOLA) / IDOR su singolo oggetto   |
 | `function-level` | Missing Function Level Access Control / verb tampering              |
 | `field-level`    | Mass assignment / autorizzazione a livello di singolo campo          |
+| `ownership`      | Accesso basato sulla proprietà del dato (owner / admin)              |
+| `tenant`         | Isolamento multi-tenant (per ufficio) + gerarchia di ruoli          |
 
 ### Esempio di test
 

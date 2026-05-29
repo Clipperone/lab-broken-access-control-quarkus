@@ -102,4 +102,25 @@ public class DemoJwtGeneratorRest {
                 .sign();
     }
 
+    /**
+     * Genera un JWT con il claim aggiuntivo "office" (ufficio di appartenenza), usato dagli scenari di
+     * autorizzazione multi-tenant. L'ufficio fa parte dell'IDENTITÀ (token), non dei dati di input: il
+     * client non può sceglierlo.
+     *
+     * @param username upn dell'utente (anche claim sub)
+     * @param office ufficio di appartenenza (claim "office")
+     * @param roles ruoli da associare
+     *
+     *        return il token JWT generato
+     */
+    public static String generateOfficeToken(String username, String office, String... roles) {
+        return Jwt.issuer(ISSUER)
+                .upn(username)
+                .groups(new HashSet<>(Arrays.asList(roles)))
+                .claim(Claims.sub.name(), username)
+                .claim("office", office)
+                .expiresIn(Duration.ofMinutes(JWT_DURATION_IN_MINUTES))
+                .sign();
+    }
+
 }

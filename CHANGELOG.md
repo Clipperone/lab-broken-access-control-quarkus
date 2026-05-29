@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Scenario **Ownership** (`/doc/note`, `PersonalNote`): dati visibili solo a owner o admin, modificabili solo dall'owner. Test: `PersonalNoteResourceTest`.
+- Scenario **Multi-tenant per ufficio + gerarchia ruoli** (`/doc/officedoc`, `OfficeDocument`): visibilità per owner/ufficio/ruolo≥, isolamento di tenant assoluto (admin di altro ufficio escluso), stato draft/published, condivisione esplicita, owner/ufficio server-side (anti mass-assignment). Test: `OfficeDocumentResourceTest`.
+- Claim JWT `office` (`DemoJwtGeneratorRest.generateOfficeToken`) e helper `security/RoleHierarchy` (gerarchia `guest<user<admin`).
+- Tassonomia tag estesa con `ownership` e `tenant`, verificati dal gate `junit5-tag-check`.
+
+
 - Guida formativa `SECURITY-TESTING-GUIDE.md`: anatomia di un security unit test di autorizzazione, ponte SAST/DAST → unit test, catalogo pattern/anti-pattern, learning path a difficoltà incrementale, matrice di copertura.
 - Scenario **Function Level Access Control & verb tampering**: nuova classe `DocResourceFunctionLevelTest` (escalation verticale sulla creazione, verb tampering → 405).
 - Scenario **Mass assignment & Field-Level Authorization**: nuovo endpoint `PUT /doc/person/edit/{uuid}` con `EditPersonRequestDTO`, nuova classe `DocResourceFieldLevelTest` (campi server-controlled non sovrascrivibili, `minRole` modificabile solo da 'admin').

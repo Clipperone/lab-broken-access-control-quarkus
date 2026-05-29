@@ -287,6 +287,8 @@
                     <requiredTag>object-level</requiredTag>
                     <requiredTag>function-level</requiredTag>
                     <requiredTag>field-level</requiredTag>
+                    <requiredTag>ownership</requiredTag>
+                    <requiredTag>tenant</requiredTag>
                   </requiredTags>
                   <failOnMissingTag>true</failOnMissingTag>
                 </configuration>

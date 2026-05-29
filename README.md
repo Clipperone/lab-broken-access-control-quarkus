@@ -49,6 +49,8 @@ Scenari di riferimento aggiunti (esempi già corretti, con test esemplari):
 
 - **Function Level Access Control & verb tampering** → [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java)
 - **Mass assignment & Field-Level Authorization** → [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java)
+- **Ownership-based access** (dati personali: visibili a owner o admin) → endpoint `/doc/note`, [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java)
+- **Multi-tenant per ufficio + gerarchia ruoli** (documenti txt; admin di un altro ufficio escluso; draft/published; sharing) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
 
 ## Quickstart
 

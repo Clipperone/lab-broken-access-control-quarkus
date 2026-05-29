@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static io.restassured.RestAssured.given;
 
@@ -39,27 +41,20 @@ class DocResourceFunctionLevelTest {
 
     // --- Escalation verticale sulla CREAZIONE: solo 'admin' può creare persone ---
 
-    @Test
-    @DisplayName("(403) function-level: un 'user' NON può creare una persona (POST /doc/person/add è admin-only)")
+    /**
+     * Un'unica prova parametrica: QUALSIASI ruolo non-admin riceve 403 sulla creazione.
+     * Usa JWT reali (non `@TestSecurity`) perché il ruolo varia per ogni invocazione; ogni token porta
+     * un solo ruolo non privilegiato, così il 403 dipende solo dall'assenza di 'admin'.
+     */
+    @ParameterizedTest(name = "(403) function-level: il ruolo ''{0}'' (non-admin) NON può creare una persona")
+    @ValueSource(strings = { "user", "guest" })
     @Tag("security")
     @Tag("forbidden")
     @Tag("function-level")
-    @TestSecurity(user = "USER1", roles = { "user", "guest" })
-    void testAddPersonUserKo() {
+    void testAddPersonNonAdminKo(String nonAdminRole) {
+        String token = DemoJwtGeneratorRest.generateToken("NONADMIN", nonAdminRole);
         given()
-                .body(VALID_PERSON_JSON).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().post("/doc/person/add")
-                .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
-    }
-
-    @Test
-    @DisplayName("(403) function-level: un 'guest' NON può creare una persona (POST /doc/person/add è admin-only)")
-    @Tag("security")
-    @Tag("forbidden")
-    @Tag("function-level")
-    @TestSecurity(user = "USER3", roles = { "guest" })
-    void testAddPersonGuestKo() {
-        given()
+                .header("Authorization", "Bearer " + token)
                 .body(VALID_PERSON_JSON).contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().post("/doc/person/add")
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());

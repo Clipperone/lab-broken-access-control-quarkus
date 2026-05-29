@@ -53,6 +53,8 @@ i test 401 esistono (`DocResourceSicurezzaTest`) ma sono test di *autenticazione
 | **Object Level Authorization** (BOLA / IDOR) | `object-level` | non puoi accedere a un oggetto fuori dai tuoi permessi; un oggetto inesistente non è distinguibile (anti-enumeration) | `DocResourceSicurezzaTest.testFindPersonKoForbidden` / `testFindPersonKoNotFound` |
 | **Mass assignment / Field-Level Authorization** | `field-level` | il client non controlla campi server-managed; un campo privilegiato è modificabile solo dal ruolo idoneo | [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java) |
 | **Data filtering per ruolo** (escalation orizzontale) | `authorized` + `security` | liste/documenti mostrano solo i dati consentiti al ruolo | `DocResourceSicurezzaTest.testListPersonsResultKo` / `testOkMarkDownConVerificaContenutoUser` |
+| **Ownership-based access** (dati personali) | `ownership` | un dato è accessibile solo all'owner (e a un admin); modificabile solo dall'owner | [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java) |
+| **Multi-tenant / isolamento per ufficio** (+ gerarchia ruoli) | `tenant` | accesso definito da owner/ufficio/ruolo; un altro tenant non accede nemmeno se admin; draft/published; sharing | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
 
 ## Anatomia di uno Unit Test per il controllo autorizzativo
 
@@ -95,6 +97,8 @@ Quando uno strumento segnala un finding, traducilo in un **test di regressione**
 | Privilege escalation via parametro/campo | Field-level | ruolo basso non può valorizzare un campo privilegiato → 403 | `DocResourceFieldLevelTest.testEditPersonUserCannotChangeMinRole` |
 | Escalation verticale su azione (delete/create) | Function-level | ruolo basso non può eseguire l'azione admin → 403 | `DocResourceSicurezzaTest.testDeletePersonUserKo` |
 | Esposizione dati per ruolo / escalation orizzontale | Data filtering | la lista/documento è filtrata per ruolo | `DocResourceSicurezzaTest.testListPersonsResultKo` |
+| IDOR su risorsa di proprietà / "broken object ownership" | Ownership | solo owner/admin accede al proprio dato; modifica solo owner | `PersonalNoteResourceTest.testOtherUserCannotReadNote` / `testNonOwnerAdminCannotEditNote` |
+| Cross-tenant access / insecure multi-tenancy | Tenant isolation | un utente di un altro tenant (ufficio) non accede, **nemmeno admin** | `OfficeDocumentResourceTest.testCrossOfficeAdminForbidden` |
 | Broken/weak authentication *(authn — fuori scope authz)* | — | token assente/scaduto/non valido → 401 | `DocResourceSicurezzaTest.testUnauthorizedWithoutJwt` / `testExpiredJWT` |
 
 > Difesa strutturale complementare: `quarkus.security.jaxrs.deny-unannotated-endpoints=true` (deny-by-default)
