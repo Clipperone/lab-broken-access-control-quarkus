@@ -6,14 +6,26 @@ Il progetto utilizza un approccio basato su **tag JUnit** per garantire la coper
 
 ### Definizione dei tag di sicurezza
 
-Definiamo i gruppi di test con cui vogliamo classificare i nostri test:
+Definiamo i gruppi di test con cui vogliamo classificare i nostri test.
+
+**Tag per esito HTTP** (autenticazione vs autorizzazione):
 
 | Tag            | Descrizione                                                 | Status Code atteso |
 |----------------|-------------------------------------------------------------|--------------------|
 | `authorized`   | Test per accessi autorizzati                                | 200, 201           |
-| `unauthorized` | Test per utenti non autenticati (JWT mancante o non valido) | 401                |
-| `forbidden`    | Test per utenti autenticati senza i permessi necessari      | 403                |
+| `unauthorized` | Test per utenti **non autenticati** (JWT mancante o non valido) — *autenticazione* | 401   |
+| `forbidden`    | Test per utenti autenticati **senza i permessi** necessari — *autorizzazione* | 403         |
 | `security`     | Tag generico per qualsiasi altro controllo di sicurezza     | vari               |
+
+> 🔑 **401 vs 403**: `401 Unauthorized` risponde a *"chi sei?"* (autenticazione mancante); `403 Forbidden` risponde a *"cosa puoi fare?"* (sei autenticato ma non autorizzato). Questo laboratorio è incentrato sull'**autorizzazione** (403 e classi sotto), non sull'autenticazione.
+
+**Tag per classe di autorizzazione** (OWASP A01 — verificati dal gate, vedi `pom.xml`):
+
+| Tag              | Classe di vulnerabilità                                              |
+|------------------|---------------------------------------------------------------------|
+| `object-level`   | Broken Object Level Authorization (BOLA) / IDOR su singolo oggetto   |
+| `function-level` | Missing Function Level Access Control / verb tampering              |
+| `field-level`    | Mass assignment / autorizzazione a livello di singolo campo          |
 
 ### Esempio di test
 
@@ -23,8 +35,9 @@ Ecco un esempio di test con tag `forbidden`:
 @Test
 @Tag("security")
 @Tag("forbidden")
-void testMarkdown403NoAdminRole() {
-    String token = JwtGenerator.generateUserToken();
+void testAsciiDoc403NoAdminRole() {
+    // l'utente con ruoli {user, guest} NON ha 'admin', richiesto da /doc/example.adoc -> 403
+    String token = DemoJwtGeneratorRest.generateUserToken();
     given()
         .header("Authorization", "Bearer " + token)
         .when().get("/doc/example.adoc")

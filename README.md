@@ -32,10 +32,23 @@ Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A
 
 ### Contenuti extra
 
+- [📘 Guida ai security unit test (formazione)](SECURITY-TESTING-GUIDE.md)
 - [Note sugli unit test](JUNIT-TEST.md)
 - [Security JUnit con tagging](JUNIT-TAG.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
-- [Contribuire](CONTRIBUITING.md)
+- [Contribuire](CONTRIBUTING.md)
+
+### 🏢 Uso come esempio aziendale / formazione
+
+Oltre al laboratorio, il progetto è usato come **riferimento per scrivere unit test di sicurezza sui
+controlli di autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. La guida completa
+— anatomia di un test, **ponte SAST/DAST → unit test**, pattern/anti-pattern, percorso junior/senior e
+matrice di copertura — è in **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)**.
+
+Scenari di riferimento aggiunti (esempi già corretti, con test esemplari):
+
+- **Function Level Access Control & verb tampering** → [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java)
+- **Mass assignment & Field-Level Authorization** → [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java)
 
 ## Quickstart
 
@@ -516,10 +529,11 @@ Questo progetto è rilasciato sotto licenza MIT - vedi il file [LICENSE](LICENSE
 
 ## 🎓 Per ulteriori informazioni
 
+- 📘 [Guida ai security unit test (formazione)](SECURITY-TESTING-GUIDE.md)
 - 📖 [Note sugli unit test](JUNIT-TEST.md)
 - 🏷️ [Security JUnit con tagging](JUNIT-TAG.md)
 - 🔧 [Troubleshooting avanzato](TROUBLESHOOTING.md)
-- 🤝 [Come contribuire](CONTRIBUITING.md)
+- 🤝 [Come contribuire](CONTRIBUTING.md)
 
 ---
 

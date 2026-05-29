@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Guida formativa `SECURITY-TESTING-GUIDE.md`: anatomia di un security unit test di autorizzazione, ponte SAST/DAST → unit test, catalogo pattern/anti-pattern, learning path junior/senior, matrice di copertura.
+- Scenario **Function Level Access Control & verb tampering**: nuova classe `DocResourceFunctionLevelTest` (escalation verticale sulla creazione, verb tampering → 405).
+- Scenario **Mass assignment & Field-Level Authorization**: nuovo endpoint `PUT /doc/person/edit/{uuid}` con `EditPersonRequestDTO`, nuova classe `DocResourceFieldLevelTest` (campi server-controlled non sovrascrivibili, `minRole` modificabile solo da 'admin').
+- Tassonomia tag estesa con `object-level`, `function-level`, `field-level`, verificati dal gate `junit5-tag-check`.
+- Deny-by-default: `quarkus.security.jaxrs.deny-unannotated-endpoints=true` (mitigazione strutturale della classe "Missing Function Level Access Control").
+
+### Changed
+
+- Endpoint demo JWT (`/demo/{roles}.txt`): `@PermitAll` esplicito e disattivazione automatica nel profilo `prod` (`@UnlessBuildProfile("prod")`).
+- Rinominato `CONTRIBUITING.md` → `CONTRIBUTING.md`; rimosso il file `dependabot.yml` duplicato (mantenuto `.github/dependabot.yml`).
+- `JUNIT-TAG.md` e `JUNIT-TEST.md` aggiornati e corretti.
+
 ## [2.0.0] - 2026-02-26
 
 ### Added
