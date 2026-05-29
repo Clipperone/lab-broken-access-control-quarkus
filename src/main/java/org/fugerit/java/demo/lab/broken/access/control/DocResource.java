@@ -17,6 +17,8 @@ import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.fugerit.java.demo.lab.broken.access.control.dto.AddPersonRequestDTO;
 import org.fugerit.java.demo.lab.broken.access.control.dto.AddPersonResponseDTO;
+import org.fugerit.java.demo.lab.broken.access.control.dto.EditPersonRequestDTO;
+import org.fugerit.java.demo.lab.broken.access.control.dto.PersonResponseDTO;
 import org.fugerit.java.demo.lab.broken.access.control.persistence.Person;
 import org.fugerit.java.demo.lab.broken.access.control.persistence.PersonRepository;
 import org.fugerit.java.doc.base.config.DocConfig;
@@ -190,6 +192,44 @@ public class DocResource {
                 return Response.status(Response.Status.FORBIDDEN).build();
             }
         }
+    }
+
+    @APIResponse(responseCode = "200", description = "La persona è stata modificata", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PersonResponseDTO.class)))
+    @APIResponse(responseCode = "401", description = "Se l'autenticazione non è presente")
+    @APIResponse(responseCode = "403", description = "Se l'utente non è autorizzato per la risorsa o per un campo privilegiato")
+    @APIResponse(responseCode = "500", description = "In caso di errori non gestiti")
+    @Tag(name = "person")
+    @Operation(operationId = "editPerson", summary = "Modifica una persona per UUID (ruoli: admin, user)", description = "Il ruolo 'user' può modificare i dati anagrafici; solo 'admin' può modificare il campo privilegiato 'minRole'.")
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/person/edit/{uuid}")
+    @RolesAllowed({ "admin", "user" })
+    @Transactional
+    public Response editPerson(@PathParam("uuid") String uuid, @Valid EditPersonRequestDTO request) {
+        Person person = this.personRepository.findByUuid(uuid);
+        // anti-enumeration + object-level: persona inesistente o non accessibile per il ruolo minimo -> 403 uniforme
+        if (person == null
+                || (person.getMinRole() != null && !this.securityIdentity.getRoles().contains(person.getMinRole()))) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        boolean isAdmin = this.securityIdentity.getRoles().contains("admin");
+        // FIELD-LEVEL AUTHORIZATION: 'minRole' è un campo PRIVILEGIATO, modificabile SOLO dal ruolo 'admin'.
+        // Un 'user' che tenta di valorizzarlo riceve 403: si previene la privilege escalation tramite manomissione
+        // del campo (la presenza del campo nel DTO non basta, l'autorizzazione è verificata lato server).
+        if (request.getMinRole() != null && !isAdmin) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        // campi anagrafici (non privilegiati): modificabili dai ruoli autorizzati all'endpoint
+        person.setFirstName(request.getFirstName());
+        person.setLastName(request.getLastName());
+        person.setTitle(request.getTitle());
+        // campo privilegiato applicato solo se il chiamante è admin
+        if (isAdmin) {
+            person.setMinRole(request.getMinRole());
+        }
+        person.persistAndFlush();
+        return Response.status(Response.Status.OK).entity(person.toDTO()).build();
     }
 
     @APIResponse(responseCode = "200", description = "La persona è stata creata", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = AddPersonResponseDTO.class)))
