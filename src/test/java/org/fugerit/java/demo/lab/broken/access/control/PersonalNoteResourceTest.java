@@ -16,17 +16,19 @@ import static io.restassured.RestAssured.given;
  *
  * <p>
  * Una nota personale è visibile all'owner o a un admin; modificabile solo dall'owner. Usa JWT reali
- * (più identità per test): ALICE/BOB(admin)/CAROL.
+ * (più identità per test). Identità (coerenti con i nomi di scienziati del progetto):
+ * EINSTEIN (owner), BOHR (admin), PLANCK (altro utente).
  * </p>
  */
 @QuarkusTest
 @Slf4j
 class PersonalNoteResourceTest {
 
-    private static final String ALICE = "Bearer %s".formatted(DemoJwtGeneratorRest.generateToken("ALICE", "user", "guest"));
-    private static final String BOB_ADMIN = "Bearer %s"
-            .formatted(DemoJwtGeneratorRest.generateToken("BOB", "admin", "user", "guest"));
-    private static final String CAROL = "Bearer %s".formatted(DemoJwtGeneratorRest.generateToken("CAROL", "user", "guest"));
+    private static final String EINSTEIN = "Bearer %s"
+            .formatted(DemoJwtGeneratorRest.generateToken("EINSTEIN", "user", "guest"));
+    private static final String BOHR_ADMIN = "Bearer %s"
+            .formatted(DemoJwtGeneratorRest.generateToken("BOHR", "admin", "user", "guest"));
+    private static final String PLANCK = "Bearer %s".formatted(DemoJwtGeneratorRest.generateToken("PLANCK", "guest"));
 
     private static final String NOTE_JSON = "{\"title\": \"Promemoria\",\"content\": \"contenuto riservato\"}";
 
@@ -44,11 +46,11 @@ class PersonalNoteResourceTest {
     @Tag("authorized")
     @Tag("ownership")
     void testOwnerReadsOwnNote() {
-        String uuid = createNoteAs(ALICE);
-        given().header("Authorization", ALICE)
+        String uuid = createNoteAs(EINSTEIN);
+        given().header("Authorization", EINSTEIN)
                 .when().get("/doc/note/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode())
-                .body("ownerUpn", Matchers.equalTo("ALICE"));
+                .body("ownerUpn", Matchers.equalTo("EINSTEIN"));
     }
 
     @Test
@@ -57,8 +59,8 @@ class PersonalNoteResourceTest {
     @Tag("authorized")
     @Tag("ownership")
     void testAdminReadsAnyNote() {
-        String uuid = createNoteAs(ALICE);
-        given().header("Authorization", BOB_ADMIN)
+        String uuid = createNoteAs(EINSTEIN);
+        given().header("Authorization", BOHR_ADMIN)
                 .when().get("/doc/note/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode());
     }
@@ -69,8 +71,8 @@ class PersonalNoteResourceTest {
     @Tag("forbidden")
     @Tag("ownership")
     void testOtherUserCannotReadNote() {
-        String uuid = createNoteAs(ALICE);
-        given().header("Authorization", CAROL)
+        String uuid = createNoteAs(EINSTEIN);
+        given().header("Authorization", PLANCK)
                 .when().get("/doc/note/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
@@ -81,8 +83,8 @@ class PersonalNoteResourceTest {
     @Tag("authorized")
     @Tag("ownership")
     void testOwnerCanEditNote() {
-        String uuid = createNoteAs(ALICE);
-        given().header("Authorization", ALICE)
+        String uuid = createNoteAs(EINSTEIN);
+        given().header("Authorization", EINSTEIN)
                 .body("{\"title\": \"Promemoria aggiornato\",\"content\": \"nuovo contenuto\"}")
                 .contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().put("/doc/note/%s".formatted(uuid))
@@ -96,8 +98,8 @@ class PersonalNoteResourceTest {
     @Tag("forbidden")
     @Tag("ownership")
     void testNonOwnerAdminCannotEditNote() {
-        String uuid = createNoteAs(ALICE);
-        given().header("Authorization", BOB_ADMIN)
+        String uuid = createNoteAs(EINSTEIN);
+        given().header("Authorization", BOHR_ADMIN)
                 .body(NOTE_JSON).contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().put("/doc/note/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
@@ -109,7 +111,7 @@ class PersonalNoteResourceTest {
     @Tag("forbidden")
     @Tag("ownership")
     void testReadNonExistentNote() {
-        given().header("Authorization", ALICE)
+        given().header("Authorization", EINSTEIN)
                 .when().get("/doc/note/%s".formatted("00000000-0000-0000-0000-000000000000"))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }

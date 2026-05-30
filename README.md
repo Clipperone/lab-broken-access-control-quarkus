@@ -52,6 +52,45 @@ Scenari di riferimento aggiunti (esempi già corretti, con test esemplari):
 - **Ownership-based access** (dati personali: visibili a owner o admin) → endpoint `/doc/note`, [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java)
 - **Multi-tenant per ufficio + gerarchia ruoli** (documenti txt; admin di un altro ufficio escluso; draft/published; sharing) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
 
+#### Provare gli scenari a grana fine (demo interattiva)
+
+**Endpoint aggiunti:**
+
+| Path                            | Metodo     | Regola di autorizzazione                                                       |
+|---------------------------------|------------|--------------------------------------------------------------------------------|
+| `/doc/note`                     | POST       | crea una nota (owner = utente autenticato)                                     |
+| `/doc/note/list`                | GET        | le proprie note; l'admin le vede tutte                                         |
+| `/doc/note/{uuid}`              | GET        | lettura: owner o admin                                                         |
+| `/doc/note/{uuid}`              | PUT/DELETE | modifica/cancellazione: solo owner                                             |
+| `/doc/officedoc`                | POST       | crea un documento (owner/ufficio/ruolo dal token, stato DRAFT)                 |
+| `/doc/officedoc/list`           | GET        | i documenti visibili al chiamante                                              |
+| `/doc/officedoc/{uuid}`         | GET        | owner, condiviso, oppure PUBLISHED + stesso ufficio + ruolo ≥ owner            |
+| `/doc/officedoc/{uuid}`         | PUT/DELETE | owner, oppure admin dello stesso ufficio su documento PUBLISHED                |
+| `/doc/officedoc/{uuid}/publish` | PUT        | pubblica (solo owner)                                                          |
+| `/doc/officedoc/{uuid}/share`   | POST       | condivide con un upn (solo owner)                                              |
+
+> L'**ufficio** è un claim del JWT (`office`), non un dato di input: in produzione arriverebbe dall'IdP. In dev lo si ottiene dall'endpoint demo.
+
+**Identità demo** — genera il token via `GET /demo/office/{office}/{upn}/{roles}.txt`:
+
+| upn       | ufficio | ruoli | token demo                                          |
+|-----------|---------|-------|-----------------------------------------------------|
+| EINSTEIN  | FISICA  | user  | `/demo/office/FISICA/EINSTEIN/user,guest.txt`       |
+| BOHR      | FISICA  | admin | `/demo/office/FISICA/BOHR/admin,user,guest.txt`     |
+| PLANCK    | FISICA  | guest | `/demo/office/FISICA/PLANCK/guest.txt`              |
+| MENDELEEV | CHIMICA | admin | `/demo/office/CHIMICA/MENDELEEV/admin,user,guest.txt` |
+
+**Dati demo pre-caricati** (in `init.sql`, solo per esplorazione: i test non vi dipendono):
+
+| Risorsa | UUID | Note |
+|---------|------|------|
+| Nota di Einstein | `a1a1a1a1-0000-0000-0000-000000000001` | visibile a Einstein o a un admin |
+| Documento di Einstein (PUBLISHED, FISICA, soglia user) | `b1b1b1b1-0000-0000-0000-000000000001` | leggibile da FISICA con ruolo ≥ user |
+| Documento di Bohr (PUBLISHED, FISICA, soglia admin) | `b1b1b1b1-0000-0000-0000-000000000002` | leggibile solo dagli admin di FISICA |
+| Bozza di Mendeleev (DRAFT, CHIMICA) | `b1b1b1b1-0000-0000-0000-000000000003` | visibile solo all'owner finché non pubblicata |
+
+**Esempio** sul documento `b1b1b1b1-0000-0000-0000-000000000001` (`GET /doc/officedoc/{uuid}`): con il token di **PLANCK** (FISICA, guest) → **403** (ruolo inferiore alla soglia `user`); con **BOHR** (FISICA, admin) → **200**; con **MENDELEEV** (CHIMICA, admin) → **403**, perché un ufficio diverso non accede *nemmeno se admin*.
+
 ## Quickstart
 
 ### Requisiti

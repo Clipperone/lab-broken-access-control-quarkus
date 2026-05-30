@@ -56,3 +56,12 @@ CREATE TABLE IF NOT EXISTS LAB_BAC.OFFICE_DOCUMENT_SHARED_WITH
 (   OFFICE_DOCUMENT_ID NUMBER(20,0) NOT NULL ENABLE,
     SHARED_UPN VARCHAR2(128) NOT NULL
 );
+
+-- Dati demo per gli scenari a grana fine (solo per esplorazione interattiva; i test NON dipendono da questi dati).
+-- Identità demo (claim office del JWT): EINSTEIN/FISICA, BOHR/FISICA(admin), PLANCK/FISICA(guest), FERMI/FISICA,
+-- MENDELEEV/CHIMICA(admin), LAVOISIER/CHIMICA.
+INSERT INTO LAB_BAC.PERSONAL_NOTE VALUES ( LAB_BAC.SEQ_PERSONAL_NOTE.nextval, 'a1a1a1a1-0000-0000-0000-000000000001', 'EINSTEIN', 'Appunti privati', 'Nota personale di Einstein (visibile solo a lui o a un admin)', SYSDATE );
+
+INSERT INTO LAB_BAC.OFFICE_DOCUMENT VALUES ( LAB_BAC.SEQ_OFFICE_DOCUMENT.nextval, 'b1b1b1b1-0000-0000-0000-000000000001', 'EINSTEIN', 'FISICA', 'user', 'PUBLISHED', 'relativita.txt', 'Documento pubblicato di Einstein (FISICA, ruolo soglia user)', SYSDATE );
+INSERT INTO LAB_BAC.OFFICE_DOCUMENT VALUES ( LAB_BAC.SEQ_OFFICE_DOCUMENT.nextval, 'b1b1b1b1-0000-0000-0000-000000000002', 'BOHR', 'FISICA', 'admin', 'PUBLISHED', 'meccanica-quantistica.txt', 'Documento di Bohr (FISICA, soglia admin: solo admin dello stesso ufficio)', SYSDATE );
+INSERT INTO LAB_BAC.OFFICE_DOCUMENT VALUES ( LAB_BAC.SEQ_OFFICE_DOCUMENT.nextval, 'b1b1b1b1-0000-0000-0000-000000000003', 'MENDELEEV', 'CHIMICA', 'admin', 'DRAFT', 'tavola-periodica.txt', 'Bozza di Mendeleev (CHIMICA): visibile solo all owner finche non pubblicata', SYSDATE );

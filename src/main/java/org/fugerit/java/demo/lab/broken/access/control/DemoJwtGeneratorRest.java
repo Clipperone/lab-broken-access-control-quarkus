@@ -55,6 +55,18 @@ public class DemoJwtGeneratorRest {
         return generateToken("DEMOUSER", roles.split(","));
     }
 
+    @APIResponse(responseCode = "201", description = "Generazione del JWT con ufficio e upn")
+    @Tag(name = "jwt authorization demo")
+    @Operation(operationId = "officeToken", summary = "Genera un JWT con ufficio e upn specifici (per gli scenari multi-tenant)", description = "Esempio: /demo/office/FISICA/EINSTEIN/user,guest.txt . Solo per scopi dimostrativi.")
+    @GET
+    @Produces("text/plain")
+    @Path("/office/{office}/{upn}/{roles}.txt")
+    @PermitAll
+    public String newOfficeToken(@PathParam("office") String office, @PathParam("upn") String upn,
+            @PathParam("roles") String roles) {
+        return generateOfficeToken(upn, office, roles.split(","));
+    }
+
     /**
      * Genera un JWT per un utente con ruolo guest
      *

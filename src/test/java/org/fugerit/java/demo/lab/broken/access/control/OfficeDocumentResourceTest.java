@@ -15,27 +15,32 @@ import static io.restassured.RestAssured.given;
  * ESEMPIO DI RIFERIMENTO — Autorizzazione multi-tenant per ufficio + gerarchia ruoli (SCENARIO 3).
  *
  * <p>
- * Identità (upn / ufficio / ruoli), via JWT reali con claim {@code office}:
+ * Identità (upn / ufficio / ruoli), via JWT reali con claim {@code office}. Nomi coerenti con gli
+ * scienziati del progetto; gli "uffici" sono reparti (FISICA, CHIMICA):
  * </p>
  * <ul>
- * <li>ALICE / A / user — owner tipico</li>
- * <li>BOB / A / admin — admin stesso ufficio</li>
- * <li>CAROL / A / guest — stesso ufficio, ruolo inferiore</li>
- * <li>GINA / A / user — stesso ufficio, ruolo ≥ ma non admin (può leggere, non modificare)</li>
- * <li>DAVE / B / admin — admin di ufficio diverso (NON deve poter accedere)</li>
- * <li>ERIN / B / user — ufficio diverso, non condiviso</li>
+ * <li>EINSTEIN / FISICA / user — owner tipico</li>
+ * <li>BOHR / FISICA / admin — admin stesso ufficio</li>
+ * <li>PLANCK / FISICA / guest — stesso ufficio, ruolo inferiore</li>
+ * <li>FERMI / FISICA / user — stesso ufficio, ruolo ≥ ma non admin (può leggere, non modificare)</li>
+ * <li>MENDELEEV / CHIMICA / admin — admin di ufficio diverso (NON deve poter accedere)</li>
+ * <li>LAVOISIER / CHIMICA / user — ufficio diverso, non condiviso</li>
  * </ul>
  */
 @QuarkusTest
 @Slf4j
 class OfficeDocumentResourceTest {
 
-    private static final String ALICE = bearer(DemoJwtGeneratorRest.generateOfficeToken("ALICE", "A", "user", "guest"));
-    private static final String BOB = bearer(DemoJwtGeneratorRest.generateOfficeToken("BOB", "A", "admin", "user", "guest"));
-    private static final String CAROL = bearer(DemoJwtGeneratorRest.generateOfficeToken("CAROL", "A", "guest"));
-    private static final String GINA = bearer(DemoJwtGeneratorRest.generateOfficeToken("GINA", "A", "user", "guest"));
-    private static final String DAVE = bearer(DemoJwtGeneratorRest.generateOfficeToken("DAVE", "B", "admin", "user", "guest"));
-    private static final String ERIN = bearer(DemoJwtGeneratorRest.generateOfficeToken("ERIN", "B", "user", "guest"));
+    private static final String EINSTEIN = bearer(
+            DemoJwtGeneratorRest.generateOfficeToken("EINSTEIN", "FISICA", "user", "guest"));
+    private static final String BOHR = bearer(
+            DemoJwtGeneratorRest.generateOfficeToken("BOHR", "FISICA", "admin", "user", "guest"));
+    private static final String PLANCK = bearer(DemoJwtGeneratorRest.generateOfficeToken("PLANCK", "FISICA", "guest"));
+    private static final String FERMI = bearer(DemoJwtGeneratorRest.generateOfficeToken("FERMI", "FISICA", "user", "guest"));
+    private static final String MENDELEEV = bearer(
+            DemoJwtGeneratorRest.generateOfficeToken("MENDELEEV", "CHIMICA", "admin", "user", "guest"));
+    private static final String LAVOISIER = bearer(
+            DemoJwtGeneratorRest.generateOfficeToken("LAVOISIER", "CHIMICA", "user", "guest"));
 
     private static final String DOC_JSON = "{\"fileName\": \"report.txt\",\"content\": \"dati di ufficio\"}";
 
@@ -72,12 +77,12 @@ class OfficeDocumentResourceTest {
     @Tag("authorized")
     @Tag("tenant")
     void testOwnerReadsOwnDraft() {
-        String uuid = createDocAs(ALICE);
-        given().header("Authorization", ALICE)
+        String uuid = createDocAs(EINSTEIN);
+        given().header("Authorization", EINSTEIN)
                 .when().get("/doc/officedoc/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode())
                 .body("status", Matchers.equalTo("DRAFT"))
-                .body("ownerOffice", Matchers.equalTo("A"));
+                .body("ownerOffice", Matchers.equalTo("FISICA"));
     }
 
     @Test
@@ -86,8 +91,8 @@ class OfficeDocumentResourceTest {
     @Tag("forbidden")
     @Tag("tenant")
     void testDraftNotVisibleToOfficeAdmin() {
-        String uuid = createDocAs(ALICE);
-        given().header("Authorization", BOB)
+        String uuid = createDocAs(EINSTEIN);
+        given().header("Authorization", BOHR)
                 .when().get("/doc/officedoc/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
@@ -98,9 +103,9 @@ class OfficeDocumentResourceTest {
     @Tag("authorized")
     @Tag("tenant")
     void testPublishedVisibleToSameOfficeHigherRole() {
-        String uuid = createDocAs(ALICE);
-        publishAs(ALICE, uuid);
-        given().header("Authorization", BOB)
+        String uuid = createDocAs(EINSTEIN);
+        publishAs(EINSTEIN, uuid);
+        given().header("Authorization", BOHR)
                 .when().get("/doc/officedoc/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode());
     }
@@ -111,9 +116,9 @@ class OfficeDocumentResourceTest {
     @Tag("forbidden")
     @Tag("tenant")
     void testSameOfficeLowerRoleForbidden() {
-        String uuid = createDocAs(ALICE);
-        publishAs(ALICE, uuid);
-        given().header("Authorization", CAROL)
+        String uuid = createDocAs(EINSTEIN);
+        publishAs(EINSTEIN, uuid);
+        given().header("Authorization", PLANCK)
                 .when().get("/doc/officedoc/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
@@ -124,9 +129,9 @@ class OfficeDocumentResourceTest {
     @Tag("forbidden")
     @Tag("tenant")
     void testCrossOfficeAdminForbidden() {
-        String uuid = createDocAs(ALICE);
-        publishAs(ALICE, uuid);
-        given().header("Authorization", DAVE)
+        String uuid = createDocAs(EINSTEIN);
+        publishAs(EINSTEIN, uuid);
+        given().header("Authorization", MENDELEEV)
                 .when().get("/doc/officedoc/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
@@ -137,7 +142,7 @@ class OfficeDocumentResourceTest {
     @Tag("forbidden")
     @Tag("object-level")
     void testAntiEnumerationNonExistent() {
-        given().header("Authorization", DAVE)
+        given().header("Authorization", MENDELEEV)
                 .when().get("/doc/officedoc/%s".formatted("11111111-1111-1111-1111-111111111111"))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
@@ -150,8 +155,8 @@ class OfficeDocumentResourceTest {
     @Tag("authorized")
     @Tag("tenant")
     void testOwnerCanEdit() {
-        String uuid = createDocAs(ALICE);
-        given().header("Authorization", ALICE)
+        String uuid = createDocAs(EINSTEIN);
+        given().header("Authorization", EINSTEIN)
                 .body("{\"fileName\": \"report-v2.txt\",\"content\": \"aggiornato\"}")
                 .contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().put("/doc/officedoc/%s".formatted(uuid))
@@ -165,9 +170,9 @@ class OfficeDocumentResourceTest {
     @Tag("authorized")
     @Tag("tenant")
     void testOfficeAdminCanEditPublished() {
-        String uuid = createDocAs(ALICE);
-        publishAs(ALICE, uuid);
-        given().header("Authorization", BOB)
+        String uuid = createDocAs(EINSTEIN);
+        publishAs(EINSTEIN, uuid);
+        given().header("Authorization", BOHR)
                 .body(DOC_JSON).contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().put("/doc/officedoc/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode());
@@ -179,9 +184,9 @@ class OfficeDocumentResourceTest {
     @Tag("forbidden")
     @Tag("tenant")
     void testSameOfficeNonAdminCannotEdit() {
-        String uuid = createDocAs(ALICE);
-        publishAs(ALICE, uuid);
-        given().header("Authorization", GINA)
+        String uuid = createDocAs(EINSTEIN);
+        publishAs(EINSTEIN, uuid);
+        given().header("Authorization", FERMI)
                 .body(DOC_JSON).contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().put("/doc/officedoc/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
@@ -193,9 +198,9 @@ class OfficeDocumentResourceTest {
     @Tag("forbidden")
     @Tag("tenant")
     void testCrossOfficeAdminCannotEdit() {
-        String uuid = createDocAs(ALICE);
-        publishAs(ALICE, uuid);
-        given().header("Authorization", DAVE)
+        String uuid = createDocAs(EINSTEIN);
+        publishAs(EINSTEIN, uuid);
+        given().header("Authorization", MENDELEEV)
                 .body(DOC_JSON).contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().put("/doc/officedoc/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
@@ -209,13 +214,13 @@ class OfficeDocumentResourceTest {
     @Tag("field-level")
     void testMassAssignmentOwnerOfficeIgnored() {
         String malicious = "{\"fileName\": \"x.txt\",\"content\": \"c\","
-                + "\"ownerUpn\": \"BOB\",\"ownerOffice\": \"B\",\"ownerRole\": \"admin\",\"status\": \"PUBLISHED\"}";
-        given().header("Authorization", ALICE)
+                + "\"ownerUpn\": \"BOHR\",\"ownerOffice\": \"CHIMICA\",\"ownerRole\": \"admin\",\"status\": \"PUBLISHED\"}";
+        given().header("Authorization", EINSTEIN)
                 .body(malicious).contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().post("/doc/officedoc")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
-                .body("ownerUpn", Matchers.equalTo("ALICE"))
-                .body("ownerOffice", Matchers.equalTo("A"))
+                .body("ownerUpn", Matchers.equalTo("EINSTEIN"))
+                .body("ownerOffice", Matchers.equalTo("FISICA"))
                 .body("status", Matchers.equalTo("DRAFT"));
     }
 
@@ -227,9 +232,9 @@ class OfficeDocumentResourceTest {
     @Tag("authorized")
     @Tag("tenant")
     void testSharingGrantsCrossOfficeRead() {
-        String uuid = createDocAs(ALICE);
-        shareAs(ALICE, uuid, "DAVE");
-        given().header("Authorization", DAVE)
+        String uuid = createDocAs(EINSTEIN);
+        shareAs(EINSTEIN, uuid, "MENDELEEV");
+        given().header("Authorization", MENDELEEV)
                 .when().get("/doc/officedoc/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode());
     }
@@ -240,9 +245,9 @@ class OfficeDocumentResourceTest {
     @Tag("forbidden")
     @Tag("tenant")
     void testNotSharedCrossOfficeForbidden() {
-        String uuid = createDocAs(ALICE);
-        shareAs(ALICE, uuid, "DAVE");
-        given().header("Authorization", ERIN)
+        String uuid = createDocAs(EINSTEIN);
+        shareAs(EINSTEIN, uuid, "MENDELEEV");
+        given().header("Authorization", LAVOISIER)
                 .when().get("/doc/officedoc/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
