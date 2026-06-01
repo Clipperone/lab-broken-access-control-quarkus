@@ -114,7 +114,7 @@ class DocResourceSicurezzaTest {
                 .when().get("/doc/example.md").then().statusCode(Response.Status.OK.getStatusCode()).extract().body()
                 .asString();
         log.info("testOkMarkDownConVerificaContenutoUser : {}", requestBody);
-        // il ruolo 'admin' NON ha accesso alla persona 'Richard Feynman'
+        // i ruoli 'user o guest' NON hanno accesso alla persona 'Richard Feynman'
         Assertions.assertFalse(requestBody.contains("Feynman"));
     }
 

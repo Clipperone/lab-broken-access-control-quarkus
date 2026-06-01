@@ -65,3 +65,20 @@ INSERT INTO LAB_BAC.PERSONAL_NOTE VALUES ( LAB_BAC.SEQ_PERSONAL_NOTE.nextval, 'a
 INSERT INTO LAB_BAC.OFFICE_DOCUMENT VALUES ( LAB_BAC.SEQ_OFFICE_DOCUMENT.nextval, 'b1b1b1b1-0000-0000-0000-000000000001', 'EINSTEIN', 'FISICA', 'user', 'PUBLISHED', 'relativita.txt', 'Documento pubblicato di Einstein (FISICA, ruolo soglia user)', SYSDATE );
 INSERT INTO LAB_BAC.OFFICE_DOCUMENT VALUES ( LAB_BAC.SEQ_OFFICE_DOCUMENT.nextval, 'b1b1b1b1-0000-0000-0000-000000000002', 'BOHR', 'FISICA', 'admin', 'PUBLISHED', 'meccanica-quantistica.txt', 'Documento di Bohr (FISICA, soglia admin: solo admin dello stesso ufficio)', SYSDATE );
 INSERT INTO LAB_BAC.OFFICE_DOCUMENT VALUES ( LAB_BAC.SEQ_OFFICE_DOCUMENT.nextval, 'b1b1b1b1-0000-0000-0000-000000000003', 'MENDELEEV', 'CHIMICA', 'admin', 'DRAFT', 'tavola-periodica.txt', 'Bozza di Mendeleev (CHIMICA): visibile solo all owner finche non pubblicata', SYSDATE );
+
+-- Appuntamenti: visibilita multi-parte (creatore / scienziato / admin ufficio) + regola temporale sul delete
+CREATE TABLE IF NOT EXISTS LAB_BAC.APPOINTMENT
+(   ID NUMBER(20,0) NOT NULL ENABLE,
+    UUID VARCHAR2(64) NOT NULL,
+    CREATOR_UPN VARCHAR2(128) NOT NULL,
+    SCIENTIST_UPN VARCHAR2(128) NOT NULL,
+    OFFICE VARCHAR2(128) NOT NULL,
+    APPOINTMENT_AT TIMESTAMP,
+    SUBJECT VARCHAR2(512),
+    CREATION_DATE TIMESTAMP
+);
+CREATE SEQUENCE IF NOT EXISTS LAB_BAC.SEQ_APPOINTMENT START WITH 40000 INCREMENT BY 1 MAXVALUE 99999999999 CACHE 1;
+
+-- Appuntamento demo (data lontana, sempre > 24h): creato da EINSTEIN con BOHR, ufficio FISICA.
+-- Visibile a EINSTEIN (creatore), BOHR (scienziato e admin FISICA); NON a Mendeleev (CHIMICA).
+INSERT INTO LAB_BAC.APPOINTMENT VALUES ( LAB_BAC.SEQ_APPOINTMENT.nextval, 'c1c1c1c1-0000-0000-0000-000000000001', 'EINSTEIN', 'BOHR', 'FISICA', TIMESTAMP '2030-01-15 10:30:00', 'Discussione sui quanti', SYSDATE );

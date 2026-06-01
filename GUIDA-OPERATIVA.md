@@ -72,6 +72,18 @@ più basilare al più avanzato. Per il *come progettare* i test vedi [SECURITY-T
 > Invarianti trasversali dello scenario di ufficio: **isolamento di tenant assoluto** (un altro ufficio non
 > accede nemmeno se admin) e **anti-enumeration** (uuid inesistente → 403 identico al "non autorizzato").
 
+### `AppointmentResource` — appuntamenti / visibilità multi-parte + regola temporale (`/doc/appointment`)
+
+| Metodo & Path | operationId | Accesso | Descrizione |
+|---------------|-------------|---------|-------------|
+| `POST /doc/appointment` | createAppointment | autenticato | Prenota un appuntamento; **creatore dal token**, scienziato/ufficio/data dal body |
+| `GET /doc/appointment/list` | listAppointments | autenticato | Gli appuntamenti visibili al chiamante |
+| `GET /doc/appointment/{uuid}` | readAppointment | creatore, destinatario o admin di ufficio | Legge un appuntamento |
+| `DELETE /doc/appointment/{uuid}` | deleteAppointment | **solo creatore, e solo > 24h prima** | Elimina (regola temporale) |
+| `PUT /doc/appointment/{uuid}/move` | moveAppointment | **solo creatore** | Sposta l'appuntamento |
+
+> Visibilità **multi-parte**: creatore O scienziato destinatario O admin dello stesso ufficio. L'eliminazione aggiunge una **regola temporale** (delete solo se mancano > 24h).
+
 ---
 
 ## 3. Catalogo dei test di sicurezza (dal più basilare al più avanzato)
@@ -160,7 +172,36 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testSharingGrantsCrossOfficeRead` (200) | Un utente di ufficio diverso, se **condiviso**, può leggere |
 | `testNotSharedCrossOfficeForbidden` (403) | Un utente di ufficio diverso **non** condiviso non legge |
 
+### Livello 8 — Visibilità multi-parte & autorizzazione temporale — `AppointmentResourceTest`
+| Test | Descrizione |
+|------|-------------|
+| `testCreatorCanView` (200) | Il creatore vede il proprio appuntamento |
+| `testScientistCanView` (200) | Lo scienziato destinatario lo vede |
+| `testOfficeAdminCanView` (200) | L'admin dello stesso ufficio lo vede |
+| `testCrossOfficeAdminForbidden` (403) | L'admin di un altro ufficio non lo vede (isolamento di tenant) |
+| `testUnrelatedSameOfficeForbidden` (403) | Un estraneo dello stesso ufficio non lo vede (visibilità relazionale) |
+| `testAntiEnumerationNonExistent` (403) | Appuntamento inesistente → 403 |
+| `testCreatorDeleteMoreThan24hOk` (200) | Il creatore elimina a più di 24h |
+| `testCreatorDeleteWithin24hForbidden` (403) | Il creatore **non** elimina a meno di 24h (regola temporale) |
+| `testNonCreatorCannotDelete` (403) | Un non-creatore (anche il destinatario) non elimina |
+| `testCreatorCanMove` (200) | Il creatore sposta l'appuntamento |
+| `testNonCreatorCannotMove` (403) | Un non-creatore non sposta |
+| `testCreatorUpnIgnored` (201) | `creatorUpn` inviato dal client viene ignorato (mass-assignment) |
+
 ---
+
+## Interfaccia grafica (console didattica)
+
+Una **console statica** è servita da Quarkus su **<http://localhost:8080/ui/>** (avvia con `mvn quarkus:dev`).
+Serve a *vedere* il comportamento autorizzativo; il backend resta l'unica autorità. Tre fasce:
+
+- **Identità (alto)**: genera/cambia identità (upn, ufficio, ruoli) con **preset** per gli scienziati (Einstein/Bohr/Planck/Fermi in FISICA, Mendeleev/Lavoisier in CHIMICA); mostra il **token decodificato** (upn/office/roles/exp).
+- **Azioni (sinistra)**: una sezione per dominio (Documenti, Persone, Note, Documenti di ufficio, Appuntamenti) con i pulsanti delle operazioni. I pulsanti restano **attivi anche per azioni che saranno negate**: vedrai il **403** dal server (la UI non è il confine di sicurezza). Dopo una *create*, l'uuid restituito viene copiato nel campo del dominio.
+- **Esito (destra)**: per ogni chiamata, `METODO path → status` con **codice colore** (verde 200/201, giallo 401, rosso 403, arancio 405) e una **spiegazione**.
+
+Prova rapida: preset **Bohr** (FISICA/admin) → *Documenti di ufficio* → Read `b1b1b1b1-0000-0000-0000-000000000001` → **200**; passa a **Mendeleev** (CHIMICA/admin) → stessa Read → **403** (isolamento di tenant).
+
+> Solo dev: in `prod` gli endpoint `/demo*` sono disattivati (`@UnlessBuildProfile("prod")`), quindi la console non può generare token. File statici in `src/main/resources/META-INF/resources/ui/`.
 
 ## Appendice — test non di sicurezza (per completezza)
 - `DocResourceTest` — smoke test positivi della generazione documenti (tag `business`/`success`).

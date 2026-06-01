@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Scenario **Appuntamenti** (`/doc/appointment`, `Appointment`): visibilità multi-parte (creatore / scienziato destinatario / admin dello stesso ufficio), **eliminazione solo dal creatore e solo se mancano più di 24h** (autorizzazione temporale), spostamento solo dal creatore, anti-enumeration, creatore server-side. Test: `AppointmentResourceTest`; tag di gate `temporal`. Sezione "Appuntamenti" anche nella console GUI.
+
+
 - Scenario **Ownership** (`/doc/note`, `PersonalNote`): dati visibili solo a owner o admin, modificabili solo dall'owner. Test: `PersonalNoteResourceTest`.
 - Scenario **Multi-tenant per ufficio + gerarchia ruoli** (`/doc/officedoc`, `OfficeDocument`): visibilità per owner/ufficio/ruolo≥, isolamento di tenant assoluto (admin di altro ufficio escluso), stato draft/published, condivisione esplicita, owner/ufficio server-side (anti mass-assignment). Test: `OfficeDocumentResourceTest`.
 - Claim JWT `office` (`DemoJwtGeneratorRest.generateOfficeToken`) e helper `security/RoleHierarchy` (gerarchia `guest<user<admin`).

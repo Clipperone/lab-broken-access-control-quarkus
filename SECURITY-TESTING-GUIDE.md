@@ -55,6 +55,7 @@ i test 401 esistono (`DocResourceSicurezzaTest`) ma sono test di *autenticazione
 | **Data filtering per ruolo** (escalation orizzontale) | `authorized` + `security` | liste/documenti mostrano solo i dati consentiti al ruolo | `DocResourceSicurezzaTest.testListPersonsResultKo` / `testOkMarkDownConVerificaContenutoUser` |
 | **Ownership-based access** (dati personali) | `ownership` | un dato è accessibile solo all'owner (e a un admin); modificabile solo dall'owner | [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java) |
 | **Multi-tenant / isolamento per ufficio** (+ gerarchia ruoli) | `tenant` | accesso definito da owner/ufficio/ruolo; un altro tenant non accede nemmeno se admin; draft/published; sharing | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
+| **Visibilità multi-parte + autorizzazione temporale** (appuntamenti) | `tenant` + `temporal` | visibile a creatore/destinatario/admin di ufficio; eliminazione solo dal creatore e solo se mancano > 24h | [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java) |
 
 ## Anatomia di uno Unit Test per il controllo autorizzativo
 
@@ -99,6 +100,8 @@ Quando uno strumento segnala un finding, traducilo in un **test di regressione**
 | Esposizione dati per ruolo / escalation orizzontale | Data filtering | la lista/documento è filtrata per ruolo | `DocResourceSicurezzaTest.testListPersonsResultKo` |
 | IDOR su risorsa di proprietà / "broken object ownership" | Ownership | solo owner/admin accede al proprio dato; modifica solo owner | `PersonalNoteResourceTest.testOtherUserCannotReadNote` / `testNonOwnerAdminCannotEditNote` |
 | Cross-tenant access / insecure multi-tenancy | Tenant isolation | un utente di un altro tenant (ufficio) non accede, **nemmeno admin** | `OfficeDocumentResourceTest.testCrossOfficeAdminForbidden` |
+| Missing time-based / contextual restriction | Temporale (ABAC) | un'azione consentita solo entro/oltre una finestra temporale (es. cancellazione solo > 24h prima) | `AppointmentResourceTest.testCreatorDeleteWithin24hForbidden` |
+| Broken access su risorsa relazionale | Relationship-based | visibile solo ai soggetti collegati (creatore/destinatario/admin di ufficio) | `AppointmentResourceTest.testUnrelatedSameOfficeForbidden` |
 | Broken/weak authentication *(authn — fuori scope authz)* | — | token assente/scaduto/non valido → 401 | `DocResourceSicurezzaTest.testUnauthorizedWithoutJwt` / `testExpiredJWT` |
 
 > Difesa strutturale complementare: `quarkus.security.jaxrs.deny-unannotated-endpoints=true` (deny-by-default)

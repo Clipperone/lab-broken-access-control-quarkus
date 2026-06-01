@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Broken Access Control — Console didattica</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- FASCIA 1: identità -->
+<header id="identity-bar">
+    <div class="id-row">
+        <strong>Identità</strong>
+        <span id="identity-info" class="id-empty">Nessuna identità (genera un token)</span>
+        <button id="btn-logout" type="button" class="secondary">Logout</button>
+    </div>
+    <div class="id-row id-form">
+        <label>upn <input id="upn" type="text" placeholder="EINSTEIN" value="EINSTEIN"></label>
+        <label>ufficio <input id="office" type="text" placeholder="FISICA (vuoto = nessuno)"></label>
+        <span class="roles">
+            ruoli:
+            <label><input id="role-admin" type="checkbox"> admin</label>
+            <label><input id="role-user" type="checkbox" checked> user</label>
+            <label><input id="role-guest" type="checkbox" checked> guest</label>
+        </span>
+        <button id="btn-gen" type="button">Genera token</button>
+    </div>
+    <div class="id-row presets">
+        <span>Preset:</span>
+        <button id="preset-einstein" type="button" class="chip">Einstein · FISICA · user</button>
+        <button id="preset-bohr" type="button" class="chip">Bohr · FISICA · admin</button>
+        <button id="preset-planck" type="button" class="chip">Planck · FISICA · guest</button>
+        <button id="preset-fermi" type="button" class="chip">Fermi · FISICA · user</button>
+        <button id="preset-mendeleev" type="button" class="chip">Mendeleev · CHIMICA · admin</button>
+        <button id="preset-lavoisier" type="button" class="chip">Lavoisier · CHIMICA · user</button>
+    </div>
+    <p class="hint">La UI non è il confine di sicurezza: i pulsanti restano attivi anche per azioni che il
+        server negherà (vedrai il 403). L'autorizzazione è imposta dal backend.</p>
+</header>
+
+<main>
+    <!-- FASCIA 2: azioni per dominio -->
+    <section id="actions">
+
+        <div class="domain">
+            <h2>📄 Documenti <small>/doc/example.*</small></h2>
+            <div class="btn-row">
+                <button data-call="GET /doc/example.md">MarkDown</button>
+                <button data-call="GET /doc/example.html">HTML</button>
+                <button data-call="GET /doc/example.adoc">AsciiDoc</button>
+                <button data-call="GET /doc/example.pdf">PDF</button>
+            </div>
+        </div>
+
+        <div class="domain">
+            <h2>👤 Persone <small>/doc/person/*</small></h2>
+            <div class="fields">
+                <input id="p-uuid" type="text" placeholder="uuid">
+                <input id="p-fn" type="text" placeholder="nome">
+                <input id="p-ln" type="text" placeholder="cognome">
+                <input id="p-title" type="text" placeholder="titolo">
+                <input id="p-minrole" type="text" placeholder="minRole (admin/user/guest/vuoto)">
+            </div>
+            <div class="btn-row">
+                <button id="btn-p-list">List</button>
+                <button id="btn-p-find">Find</button>
+                <button id="btn-p-add">Add</button>
+                <button id="btn-p-edit">Edit</button>
+                <button id="btn-p-del">Delete</button>
+            </div>
+        </div>
+
+        <div class="domain">
+            <h2>📝 Note personali <small>/doc/note — ownership</small></h2>
+            <div class="fields">
+                <input id="n-uuid" type="text" placeholder="uuid">
+                <input id="n-title" type="text" placeholder="titolo">
+                <input id="n-content" type="text" placeholder="contenuto">
+            </div>
+            <div class="btn-row">
+                <button id="btn-n-create">Create</button>
+                <button id="btn-n-list">List</button>
+                <button id="btn-n-read">Read</button>
+                <button id="btn-n-edit">Edit</button>
+                <button id="btn-n-del">Delete</button>
+            </div>
+        </div>
+
+        <div class="domain">
+            <h2>🏢 Documenti di ufficio <small>/doc/officedoc — multi-tenant</small></h2>
+            <div class="fields">
+                <input id="o-uuid" type="text" placeholder="uuid">
+                <input id="o-file" type="text" placeholder="fileName">
+                <input id="o-content" type="text" placeholder="contenuto">
+                <input id="o-target" type="text" placeholder="condividi con (upn)">
+            </div>
+            <div class="btn-row">
+                <button id="btn-o-create">Create</button>
+                <button id="btn-o-list">List</button>
+                <button id="btn-o-read">Read</button>
+                <button id="btn-o-edit">Edit</button>
+                <button id="btn-o-del">Delete</button>
+                <button id="btn-o-pub">Publish</button>
+                <button id="btn-o-share">Share</button>
+            </div>
+        </div>
+
+        <div class="domain">
+            <h2>📅 Appuntamenti <small>/doc/appointment — visibilità multi-parte + regola 24h</small></h2>
+            <div class="fields">
+                <input id="a-uuid" type="text" placeholder="uuid">
+                <input id="a-scientist" type="text" placeholder="scienziato (upn)">
+                <input id="a-office" type="text" placeholder="ufficio">
+                <label class="dt">data <input id="a-at" type="datetime-local"></label>
+                <input id="a-subject" type="text" placeholder="oggetto">
+                <label class="dt">nuova data (move) <input id="a-newat" type="datetime-local"></label>
+            </div>
+            <div class="btn-row">
+                <button id="btn-a-create">Create</button>
+                <button id="btn-a-list">List</button>
+                <button id="btn-a-read">Read</button>
+                <button id="btn-a-move">Move</button>
+                <button id="btn-a-del">Delete</button>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- FASCIA 3: esito + spiegazione -->
+    <aside id="response">
+        <div class="resp-head">
+            <h2>Esito</h2>
+            <button id="btn-clear" type="button" class="secondary">Pulisci</button>
+        </div>
+        <div id="response-panel"></div>
+    </aside>
+</main>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

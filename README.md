@@ -51,6 +51,7 @@ Scenari di riferimento aggiunti (esempi già corretti, con test esemplari):
 - **Mass assignment & Field-Level Authorization** → [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java)
 - **Ownership-based access** (dati personali: visibili a owner o admin) → endpoint `/doc/note`, [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java)
 - **Multi-tenant per ufficio + gerarchia ruoli** (documenti txt; admin di un altro ufficio escluso; draft/published; sharing) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
+- **Appuntamenti: visibilità multi-parte + autorizzazione temporale** (visibile a creatore/destinatario/admin-ufficio; delete solo dal creatore e solo > 24h prima; move solo dal creatore) → endpoint `/doc/appointment`, [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java)
 
 #### Provare gli scenari a grana fine (demo interattiva)
 
@@ -68,6 +69,11 @@ Scenari di riferimento aggiunti (esempi già corretti, con test esemplari):
 | `/doc/officedoc/{uuid}`         | PUT/DELETE | owner, oppure admin dello stesso ufficio su documento PUBLISHED                |
 | `/doc/officedoc/{uuid}/publish` | PUT        | pubblica (solo owner)                                                          |
 | `/doc/officedoc/{uuid}/share`   | POST       | condivide con un upn (solo owner)                                              |
+| `/doc/appointment`              | POST       | prenota un appuntamento (creatore dal token; scienziato/ufficio/data dal body) |
+| `/doc/appointment/list`         | GET        | gli appuntamenti visibili al chiamante                                         |
+| `/doc/appointment/{uuid}`       | GET        | lettura: creatore, scienziato destinatario o admin dello stesso ufficio        |
+| `/doc/appointment/{uuid}`       | DELETE     | elimina: solo il creatore e solo se mancano più di 24h (regola temporale)      |
+| `/doc/appointment/{uuid}/move`  | PUT        | sposta: solo il creatore                                                       |
 
 > L'**ufficio** è un claim del JWT (`office`), non un dato di input: in produzione arriverebbe dall'IdP. In dev lo si ottiene dall'endpoint demo.
 
@@ -474,6 +480,7 @@ User → JWT Token → Quarkus Security → Role Check → Object Authorization 
 
 | Risorsa              | Link                                  |
 |----------------------|---------------------------------------|
+| Console didattica (GUI) | http://localhost:8080/ui/          |
 | Swagger UI           | http://localhost:8080/q/swagger-ui/   |
 | Dev UI               | http://localhost:8080/q/dev/          |
 | Health Check         | http://localhost:8080/q/health        |
