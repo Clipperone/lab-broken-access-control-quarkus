@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **README ristrutturato come hub snello**: nuova sezione "Due modi di usare il progetto" (laboratorio vs riferimento formativo), indice riallineato, sezioni riordinate (Il progetto → Quickstart → Scenario → Workflow → Vulnerabilità), Bonus UUID spostato dopo le vulnerabilità dimostrative, tabella ruoli deduplicata, riferimento a `branch-vulnerable` riformulato come roadmap. Identità demo, dati seed e walkthrough migrati in `GUIDA-OPERATIVA.md` (nuova sottosezione "Identità e dati demo", incluso il seed appuntamento).
 - Endpoint demo JWT (`/demo/{roles}.txt`): `@PermitAll` esplicito e disattivazione automatica nel profilo `prod` (`@UnlessBuildProfile("prod")`).
 - Rinominato `CONTRIBUITING.md` → `CONTRIBUTING.md`; rimosso il file `dependabot.yml` duplicato (mantenuto `.github/dependabot.yml`).
 - `JUNIT-TAG.md` e `JUNIT-TEST.md` aggiornati e corretti.

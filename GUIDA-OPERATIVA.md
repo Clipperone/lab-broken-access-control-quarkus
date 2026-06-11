@@ -18,9 +18,38 @@ più basilare al più avanzato. Per il *come progettare* i test vedi [SECURITY-T
    - ruoli semplici: `GET /demo/admin,user.txt`
    - con ufficio (scenari multi-tenant): `GET /demo/office/FISICA/EINSTEIN/user,guest.txt`
 5. **Prova gli endpoint** con ruoli/uffici diversi e osserva **200 / 401 / 403 / 405**: è il modo più rapido per "sentire" le regole.
-6. **Leggi lo scenario** nel [README.md](README.md) (ruoli, persone, mappa permessi, identità demo).
+6. **Leggi lo scenario** nel [README.md](README.md) (ruoli, persone, mappa permessi); le identità e i dati demo per gli scenari a grana fine sono [qui sotto](#identità-e-dati-demo-per-gli-scenari-a-grana-fine).
 7. **Dove guardare il codice**: le risorse REST in `…/control/*Resource.java`; le regole fini dentro i metodi; i test in `src/test/java/…`.
 8. **Ciclo di sviluppo**: branch dedicato → modifica → `mvn verify -P security` → tagga i nuovi test (`security` + esito + classe) o il gate fallisce.
+
+### Identità e dati demo per gli scenari a grana fine
+
+Per provare interattivamente gli scenari **ownership** (`/doc/note`), **multi-tenant** (`/doc/officedoc`)
+e **appuntamenti** (`/doc/appointment`) genera il token via `GET /demo/office/{office}/{upn}/{roles}.txt`:
+
+| upn       | ufficio | ruoli | token demo                                            |
+|-----------|---------|-------|-------------------------------------------------------|
+| EINSTEIN  | FISICA  | user  | `/demo/office/FISICA/EINSTEIN/user,guest.txt`         |
+| BOHR      | FISICA  | admin | `/demo/office/FISICA/BOHR/admin,user,guest.txt`       |
+| PLANCK    | FISICA  | guest | `/demo/office/FISICA/PLANCK/guest.txt`                |
+| MENDELEEV | CHIMICA | admin | `/demo/office/CHIMICA/MENDELEEV/admin,user,guest.txt` |
+
+> L'**ufficio** è un claim del JWT (`office`), non un dato di input: in produzione arriverebbe dall'IdP. In dev lo si ottiene dall'endpoint demo.
+
+**Dati demo pre-caricati** (in `init.sql`, solo per esplorazione: i test non vi dipendono):
+
+| Risorsa | UUID | Note |
+|---------|------|------|
+| Nota di Einstein | `a1a1a1a1-0000-0000-0000-000000000001` | visibile a Einstein o a un admin |
+| Documento di Einstein (PUBLISHED, FISICA, soglia user) | `b1b1b1b1-0000-0000-0000-000000000001` | leggibile da FISICA con ruolo ≥ user |
+| Documento di Bohr (PUBLISHED, FISICA, soglia admin) | `b1b1b1b1-0000-0000-0000-000000000002` | leggibile solo dagli admin di FISICA |
+| Bozza di Mendeleev (DRAFT, CHIMICA) | `b1b1b1b1-0000-0000-0000-000000000003` | visibile solo all'owner finché non pubblicata |
+| Appuntamento di Einstein con Bohr (FISICA, 2030) | `c1c1c1c1-0000-0000-0000-000000000001` | visibile a Einstein, Bohr o un admin di FISICA |
+
+**Esempio** sul documento `b1b1b1b1-0000-0000-0000-000000000001` (`GET /doc/officedoc/{uuid}`): con il
+token di **PLANCK** (FISICA, guest) → **403** (ruolo inferiore alla soglia `user`); con **BOHR**
+(FISICA, admin) → **200**; con **MENDELEEV** (CHIMICA, admin) → **403**, perché un ufficio diverso non
+accede *nemmeno se admin*.
 
 ---
 

@@ -4,7 +4,7 @@ Un laboratorio educativo completo per testare e comprendere le vulnerabilità [B
 
 > ⚠️ **ATTENZIONE**: Questo progetto contiene **intenzionalmente vulnerabilità di sicurezza** a scopo educativo. **NON utilizzare in produzione** e **NON esporre pubblicamente** senza aver rimosso tutte le vulnerabilità dimostrative.
 
-> 🟢 Versione sanata (git checkout branch-vulnerable per accedere alla versione vulnerabile del progetto)
+> 🟢 Questo branch contiene la **versione sanata** (vulnerabilità corrette, test verdi). Un branch con la versione vulnerabile, da usare come punto di partenza degli esercizi TDD, è previsto in roadmap (vedi [TODO.md](TODO.md)).
 
 Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/) sono attualmente le più diffuse secondo il progetto [OWASP](https://owasp.org/). Sono al primo posto sia nella [OWASP Top 10](https://owasp.org/Top10/) del [2021](https://owasp.org/Top10/2021/) che [2025](https://owasp.org/Top10/2025/).
 
@@ -15,87 +15,63 @@ Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A
 
 ## Indice
 
-### Il laboratorio
-
-- [Quickstart](#quickstart)
-- [Obiettivi del laboratorio](#obiettivi-del-laboratorio)
-- [Cosa imparerai](#cosa-imparerai)
+- [Due modi di usare il progetto](#due-modi-di-usare-il-progetto)
 - [Il progetto](#il-progetto)
+- [Quickstart](#quickstart)
 - [Lo scenario](#lo-scenario)
-- [Vulnerabilità dimostrative](#vulnerabilità-dimostrative)
-- [Architettura della sicurezza](#architettura-della-sicurezza)
 - [Workflow del laboratorio](#workflow-del-laboratorio)
-- [Riferimenti rapidi](#-riferimenti-rapidi)
-- [FAQ / Problemi comuni](#-faq--problemi-comuni)
+- [Vulnerabilità dimostrative](#vulnerabilità-dimostrative)
+  - [🎁 Bonus — Conversione degli ID in UUID](#-bonus--conversione-degli-id-in-uuid)
+- [Architettura della sicurezza](#architettura-della-sicurezza)
+- [📚 Riferimenti rapidi](#-riferimenti-rapidi)
+- [❓ FAQ / Problemi comuni](#-faq--problemi-comuni)
 - [Licenza](#licenza)
-- [🎁 Bonus — Conversione degli ID in UUID](#-bonus--conversione-degli-id-in-uuid)
 
-### Contenuti extra
+## Due modi di usare il progetto
 
-- [📘 Guida ai security unit test (formazione)](SECURITY-TESTING-GUIDE.md)
-- [Note sugli unit test](JUNIT-TEST.md)
-- [Security JUnit con tagging](JUNIT-TAG.md)
-- [Troubleshooting](TROUBLESHOOTING.md)
-- [Contribuire](CONTRIBUTING.md)
+### 🧪 Percorso 1 — Il laboratorio
 
-### 🏢 Uso come esempio aziendale / formazione
+Parti da una versione vulnerabile, fai fallire i test e correggi le vulnerabilità (1)–(5) + la BONUS (X)
+su [DocResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/DocResource.java).
+È il percorso descritto in questo README: [Quickstart](#quickstart) → [Lo scenario](#lo-scenario) →
+[Workflow del laboratorio](#workflow-del-laboratorio) → [Vulnerabilità dimostrative](#vulnerabilità-dimostrative).
 
-Oltre al laboratorio, il progetto è usato come **riferimento per scrivere unit test di sicurezza sui
-controlli di autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. La guida completa
-— anatomia di un test, **ponte SAST/DAST → unit test**, pattern/anti-pattern, percorso a difficoltà
-incrementale (riferimenti semplici e complessi) e matrice di copertura — è in **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)**.
+### 🏢 Percorso 2 — Riferimento formativo aziendale
 
-Scenari di riferimento aggiunti (esempi già corretti, con test esemplari):
+Il progetto è anche un **riferimento per scrivere unit test di sicurezza sui controlli di
+autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Scenari di riferimento
+(esempi già corretti, con test esemplari):
 
 - **Function Level Access Control & verb tampering** → [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java)
 - **Mass assignment & Field-Level Authorization** → [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java)
 - **Ownership-based access** (dati personali: visibili a owner o admin) → endpoint `/doc/note`, [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java)
-- **Multi-tenant per ufficio + gerarchia ruoli** (documenti txt; admin di un altro ufficio escluso; draft/published; sharing) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
-- **Appuntamenti: visibilità multi-parte + autorizzazione temporale** (visibile a creatore/destinatario/admin-ufficio; delete solo dal creatore e solo > 24h prima; move solo dal creatore) → endpoint `/doc/appointment`, [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java)
+- **Multi-tenant per ufficio + gerarchia ruoli** (admin di un altro ufficio escluso; draft/published; sharing) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
+- **Appuntamenti: visibilità multi-parte + autorizzazione temporale** (delete solo dal creatore e solo > 24h prima) → endpoint `/doc/appointment`, [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java)
 
-#### Provare gli scenari a grana fine (demo interattiva)
+Documenti dedicati:
 
-**Endpoint aggiunti:**
+- 📘 **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)** — *come progettare* i test: anatomia di un test di autorizzazione, ponte SAST/DAST → unit test, pattern/anti-pattern, percorso a difficoltà incrementale, matrice di copertura.
+- 🧭 **[GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md)** — onboarding step-by-step, descrizione di tutti i metodi OpenAPI, catalogo dei test dal più basilare al più avanzato, **identità e dati demo** per provare gli scenari a grana fine.
+- 🖥️ **Console didattica** su <http://localhost:8080/ui/> (in dev): prova gli scenari dal browser cambiando identità e osservando esito + spiegazione.
 
-| Path                            | Metodo     | Regola di autorizzazione                                                       |
-|---------------------------------|------------|--------------------------------------------------------------------------------|
-| `/doc/note`                     | POST       | crea una nota (owner = utente autenticato)                                     |
-| `/doc/note/list`                | GET        | le proprie note; l'admin le vede tutte                                         |
-| `/doc/note/{uuid}`              | GET        | lettura: owner o admin                                                         |
-| `/doc/note/{uuid}`              | PUT/DELETE | modifica/cancellazione: solo owner                                             |
-| `/doc/officedoc`                | POST       | crea un documento (owner/ufficio/ruolo dal token, stato DRAFT)                 |
-| `/doc/officedoc/list`           | GET        | i documenti visibili al chiamante                                              |
-| `/doc/officedoc/{uuid}`         | GET        | owner, condiviso, oppure PUBLISHED + stesso ufficio + ruolo ≥ owner            |
-| `/doc/officedoc/{uuid}`         | PUT/DELETE | owner, oppure admin dello stesso ufficio su documento PUBLISHED                |
-| `/doc/officedoc/{uuid}/publish` | PUT        | pubblica (solo owner)                                                          |
-| `/doc/officedoc/{uuid}/share`   | POST       | condivide con un upn (solo owner)                                              |
-| `/doc/appointment`              | POST       | prenota un appuntamento (creatore dal token; scienziato/ufficio/data dal body) |
-| `/doc/appointment/list`         | GET        | gli appuntamenti visibili al chiamante                                         |
-| `/doc/appointment/{uuid}`       | GET        | lettura: creatore, scienziato destinatario o admin dello stesso ufficio        |
-| `/doc/appointment/{uuid}`       | DELETE     | elimina: solo il creatore e solo se mancano più di 24h (regola temporale)      |
-| `/doc/appointment/{uuid}/move`  | PUT        | sposta: solo il creatore                                                       |
+## Il progetto
 
-> L'**ufficio** è un claim del JWT (`office`), non un dato di input: in produzione arriverebbe dall'IdP. In dev lo si ottiene dall'endpoint demo.
+Questo progetto dimostra come implementare una strategia di testing basata su tag JUnit per garantire la copertura dei requisiti di sicurezza in un'applicazione Quarkus con autenticazione JWT e RBAC (Role-Based Access Control).
 
-**Identità demo** — genera il token via `GET /demo/office/{office}/{upn}/{roles}.txt`:
+Completando il laboratorio acquisirai competenze pratiche su:
 
-| upn       | ufficio | ruoli | token demo                                          |
-|-----------|---------|-------|-----------------------------------------------------|
-| EINSTEIN  | FISICA  | user  | `/demo/office/FISICA/EINSTEIN/user,guest.txt`       |
-| BOHR      | FISICA  | admin | `/demo/office/FISICA/BOHR/admin,user,guest.txt`     |
-| PLANCK    | FISICA  | guest | `/demo/office/FISICA/PLANCK/guest.txt`              |
-| MENDELEEV | CHIMICA | admin | `/demo/office/CHIMICA/MENDELEEV/admin,user,guest.txt` |
+- 🔐 **Autenticazione JWT**: implementazione e configurazione in Quarkus
+- 🛡️ **RBAC**: design e implementazione di Role-Based Access Control
+- 🐛 **Vulnerability Detection**: identificazione di BOLA, IDOR e privilege escalation
+- ✅ **Security Testing**: strategia di test con JUnit tags e coverage
+- 📊 **Security Metrics**: misurazione della copertura dei requisiti di sicurezza
+- 🔒 **Defense in Depth**: approccio a più livelli per la sicurezza applicativa
 
-**Dati demo pre-caricati** (in `init.sql`, solo per esplorazione: i test non vi dipendono):
+### Stack tecnologico
 
-| Risorsa | UUID | Note |
-|---------|------|------|
-| Nota di Einstein | `a1a1a1a1-0000-0000-0000-000000000001` | visibile a Einstein o a un admin |
-| Documento di Einstein (PUBLISHED, FISICA, soglia user) | `b1b1b1b1-0000-0000-0000-000000000001` | leggibile da FISICA con ruolo ≥ user |
-| Documento di Bohr (PUBLISHED, FISICA, soglia admin) | `b1b1b1b1-0000-0000-0000-000000000002` | leggibile solo dagli admin di FISICA |
-| Bozza di Mendeleev (DRAFT, CHIMICA) | `b1b1b1b1-0000-0000-0000-000000000003` | visibile solo all'owner finché non pubblicata |
-
-**Esempio** sul documento `b1b1b1b1-0000-0000-0000-000000000001` (`GET /doc/officedoc/{uuid}`): con il token di **PLANCK** (FISICA, guest) → **403** (ruolo inferiore alla soglia `user`); con **BOHR** (FISICA, admin) → **200**; con **MENDELEEV** (CHIMICA, admin) → **403**, perché un ufficio diverso non accede *nemmeno se admin*.
+- [Quarkus - Stack cloud-native ottimizzato per OpenJDK HotSpot e GraalVM](https://quarkus.io/)
+- [junit5-tag-check-maven-plugin - Plugin Maven che permette di verificare che dei test con tag specifici siano stati eseguiti](https://github.com/fugerit-org/junit5-tag-check-maven-plugin)
+- [Fugerit Venus Doc - Framework per la generazione di documenti in vari formati (usato solo per le funzionalità dimostrative)](https://github.com/fugerit-org/fj-doc)
 
 ## Quickstart
 
@@ -124,27 +100,19 @@ mvn quarkus:dev
 ### Utilizzo dell'applicazione
 
 1. Apri la [Swagger UI](http://localhost:8080/q/swagger-ui/)
-2. Genera un JWT token (vedi sezione successiva)
+2. Genera un JWT token
 3. Autorizza le richieste con il token
 4. Testa gli endpoint disponibili
 
 ### Generazione e utilizzo dei JWT token
 
-#### Generazione del token
-
-Usa l'endpoint `/demo/{roles}.txt` per generare un JWT con i ruoli desiderati.
+Usa l'endpoint `/demo/{roles}.txt` per generare un JWT con i ruoli desiderati; per gli scenari
+multi-tenant usa `/demo/office/{office}/{upn}/{roles}.txt`, che aggiunge il claim `office` e l'upn
+(vedi le [identità demo](GUIDA-OPERATIVA.md#identità-e-dati-demo-per-gli-scenari-a-grana-fine)).
 
 > ⏱️ **Durata token**: 1 ora (3600 secondi)  
 > 🔑 **Algoritmo**: RS256 (RSA Signature con SHA-256)  
 > 📝 **Issuer**: `https://unittestdemoapp.fugerit.org`
-
-**Ruoli disponibili:**
-
-| Ruolo   | Permessi                           | Esempio di utilizzo        |
-|---------|------------------------------------|----------------------------|
-| `admin` | Accesso completo a tutti i formati | Operazioni di gestione     |
-| `user`  | Accesso a MarkDown e HTML          | Lettura documenti standard |
-| `guest` | Accesso solo a MarkDown            | Visualizzazione base       |
 
 **Esempi di generazione da console:**
 ```bash
@@ -207,82 +175,6 @@ Con i ruoli appropriati, puoi accedere agli endpoint autorizzati.
 
 Vedi la [mappatura di ruoli e path](#mappatura-ruoli--permessi--metodo-http) per maggiori dettagli.
 
-## Workflow del laboratorio
-
-### Passo 1: Setup iniziale
-```bash
-git clone https://github.com/fugerit79/lab-broken-access-control-quarkus.git
-cd lab-broken-access-control-quarkus
-mvn quarkus:dev
-```
-
-### Passo 2: Esplora le vulnerabilità
-
-- Apri `DocResource.java`
-- Cerca i commenti `// VULNERABILITY: (n)`
-- Analizza il codice vulnerabile
-- Identifica il tipo di vulnerabilità (IDOR, BOLA, etc.)
-
-### Passo 3: Esegui i test
-```bash
-mvn verify -P security
-```
-
-I test falliranno dove ci sono vulnerabilità. Osserva gli errori per capire cosa non funziona.
-
-### Passo 4: Correggi le vulnerabilità
-
-- Implementa le correzioni seguendo le best practices OWASP
-- Verifica con i test che le modifiche funzionino
-- Confronta con le soluzioni (`// SOLUTION: (n)`)
-
-### Passo 5: Verifica la copertura
-```bash
-mvn verify -P security
-```
-
-Tutti i test devono passare ✅
-
-### Passo 6: Trova la vulnerabilità BONUS
-
-Cerca la vulnerabilità (X) che non è coperta dai test. Suggerimenti:
-- Esamina tutti gli endpoint
-- Cerca metodi HTTP non documentati
-- Controlla le annotation mancanti
-
-## Obiettivi del laboratorio
-
-Questo laboratorio ti permetterà di:
-
-- 🎯 Comprendere le vulnerabilità Broken Access Control in pratica
-- 🔍 Identificare pattern di codice vulnerabile
-- 🛡️ Imparare tecniche di mitigazione e best practices
-- ✅ Implementare test di sicurezza efficaci con JUnit tags
-- 📊 Misurare la copertura dei requisiti di sicurezza
-
-## Cosa imparerai
-
-Completando questo laboratorio, acquisirai competenze pratiche su:
-
-- 🔐 **Autenticazione JWT**: Implementazione e configurazione in Quarkus
-- 🛡️ **RBAC**: Design e implementazione di Role-Based Access Control
-- 🐛 **Vulnerability Detection**: Identificazione di BOLA, IDOR e privilege escalation
-- ✅ **Security Testing**: Strategia di test con JUnit tags e coverage
-- 📊 **Security Metrics**: Misurazione della copertura dei requisiti di sicurezza
-- 🔒 **Defense in Depth**: Approccio a più livelli per la sicurezza applicativa
-
-## Il progetto
-
-Questo progetto dimostra come implementare una strategia di testing basata su tag JUnit per garantire la copertura dei requisiti di sicurezza in un'applicazione Quarkus con autenticazione JWT e RBAC (Role-Based Access Control).
-
-### Stack tecnologico
-
-I principali componenti usati per questo progetto sono:
-
-- [Quarkus - Stack cloud-native ottimizzato per OpenJDK HotSpot e GraalVM](https://quarkus.io/)
-- [junit5-tag-check-maven-plugin - Plugin Maven che permette di verificare che dei test con tag specifici siano stati eseguiti](https://github.com/fugerit-org/junit5-tag-check-maven-plugin)
-- [Fugerit Venus Doc - Framework per la generazione di documenti in vari formati (usato solo per le funzionalità dimostrative)](https://github.com/fugerit-org/fj-doc)
-
 ## Lo scenario
 
 Nel nostro scenario, abbiamo una base dati popolata e alcuni path disponibili.
@@ -329,6 +221,52 @@ L'applicazione è configurata per gestire 3 ruoli e 4 path, che generano lo stes
 | `admin` | Accesso completo a tutti i formati | Vedere Richard Feynman, gestire persone     |
 | `user`  | Accesso a MarkDown e HTML          | Vedere Hack e Turing, documenti base        |
 | `guest` | Accesso solo a MarkDown            | Visualizzazione read-only limitata          |
+
+Gli scenari di autorizzazione a grana fine (note personali, documenti di ufficio, appuntamenti) sono
+descritti in [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) (endpoint, regole, identità e dati demo).
+
+## Workflow del laboratorio
+
+### Passo 1: Setup iniziale
+```bash
+git clone https://github.com/fugerit79/lab-broken-access-control-quarkus.git
+cd lab-broken-access-control-quarkus
+mvn quarkus:dev
+```
+
+### Passo 2: Esplora le vulnerabilità
+
+- Apri `DocResource.java`
+- Cerca i commenti `// VULNERABILITY: (n)`
+- Analizza il codice vulnerabile
+- Identifica il tipo di vulnerabilità (IDOR, BOLA, etc.)
+
+### Passo 3: Esegui i test
+```bash
+mvn verify -P security
+```
+
+I test falliranno dove ci sono vulnerabilità. Osserva gli errori per capire cosa non funziona.
+
+### Passo 4: Correggi le vulnerabilità
+
+- Implementa le correzioni seguendo le best practices OWASP
+- Verifica con i test che le modifiche funzionino
+- Confronta con le soluzioni (`// SOLUTION: (n)`)
+
+### Passo 5: Verifica la copertura
+```bash
+mvn verify -P security
+```
+
+Tutti i test devono passare ✅
+
+### Passo 6: Trova la vulnerabilità BONUS
+
+Cerca la vulnerabilità (X) che non è coperta dai test. Suggerimenti:
+- Esamina tutti gli endpoint
+- Cerca metodi HTTP non documentati
+- Controlla le annotation mancanti
 
 ## Vulnerabilità dimostrative
 
@@ -462,6 +400,54 @@ Mentre dopo aver applicato le patch il risultato dovrebbe essere un questo
 
 Buon lavoro!
 
+### 🎁 Bonus — Conversione degli ID in UUID
+
+Come visto nelle [vulnerabilità dimostrative](#vulnerabilità-dimostrative) (1) e (4), l'uso di **ID sequenziali** espone l'applicazione a vulnerabilità di tipo **IDOR** (Insecure Direct Object Reference), rendendo banale per un attaccante enumerare le risorse.
+
+Una buona pratica è sostituire gli ID sequenziali con **UUID** casuali come identificatori pubblici delle risorse.
+
+#### Modifiche necessarie
+
+**1. `PersonRepository.java`** — aggiungere il metodo di ricerca per UUID:
+```java
+/**
+ * Cerca una persona tramite il campo UUID.
+ *
+ * @param uuid l'UUID della persona da cercare
+ * @return la {@link Person} corrispondente all'UUID fornito, o {@code null} se non trovata
+ */
+public Person findByUuid(String uuid) {
+    return find("uuid", uuid).firstResult();
+}
+```
+
+**2. `DocResource.java`** — generare l'UUID alla creazione e usarlo come identificatore nei path:
+
+- Alla creazione della persona, generare un UUID casuale:
+```java
+person.setUuid(UUID.randomUUID().toString());
+```
+- Restituire l'UUID invece dell'ID sequenziale nella risposta:
+```java
+response.setUuid(person.getUuid());
+```
+- Sostituire `{id}` con `{uuid}` negli endpoint `findPerson` e `deletePerson`:
+```
+GET    /doc/person/find/{uuid}
+DELETE /doc/person/delete/{uuid}
+```
+
+#### Perché è importante
+
+| | ID Sequenziale | UUID |
+|---|---|---|
+| Esempio | `/person/find/42` | `/person/find/a3f1c2d4-...` |
+| Enumerabile | ✅ facilmente | ❌ praticamente impossibile |
+| Prevedibile | ✅ sì | ❌ no |
+| Sicurezza | ⚠️ bassa | ✅ alta |
+
+> 💡 L'UUID non sostituisce i controlli di autorizzazione — è un ulteriore livello di difesa. Le vulnerabilità (1), (4) del laboratorio devono comunque essere corrette indipendentemente dall'uso degli UUID.
+
 ## Architettura della sicurezza
 
 L'applicazione implementa un sistema di sicurezza a più livelli:
@@ -469,14 +455,17 @@ L'applicazione implementa un sistema di sicurezza a più livelli:
 1. **Autenticazione JWT**: Verifica dell'identità tramite token firmati
 2. **RBAC**: Controllo accessi basato su ruoli
 3. **Object-Level Authorization**: Verifica permessi su singoli oggetti
-4. **Test automatizzati**: Garanzia della copertura dei requisiti di sicurezza tramite tag JUnit
+4. **Field-Level Authorization**: Campi privilegiati modificabili solo dai ruoli idonei
+5. **Test automatizzati**: Garanzia della copertura dei requisiti di sicurezza tramite tag JUnit
 
 ### Flusso di autenticazione
 ```
-User → JWT Token → Quarkus Security → Role Check → Object Authorization → Resource Access
+User → JWT Token → Quarkus Security → Role Check → Object Authorization → Field Authorization → Resource Access
 ```
 
 ## 📚 Riferimenti rapidi
+
+**In esecuzione (dev):**
 
 | Risorsa              | Link                                  |
 |----------------------|---------------------------------------|
@@ -488,6 +477,18 @@ User → JWT Token → Quarkus Security → Role Check → Object Authorization 
 | OWASP API Security   | https://owasp.org/API-Security/       |
 | JWT Debugger         | https://jwt.io/                       |
 | Quarkus Security     | https://quarkus.io/guides/security    |
+
+**Documentazione del progetto:**
+
+| Documento | Contenuto |
+|-----------|-----------|
+| 📘 [SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md) | Guida ai security unit test (formazione) |
+| 🧭 [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) | Onboarding, metodi OpenAPI, catalogo test, dati demo |
+| 📖 [JUNIT-TEST.md](JUNIT-TEST.md) | Note sugli unit test (indice delle classi) |
+| 🏷️ [JUNIT-TAG.md](JUNIT-TAG.md) | Security JUnit con tagging |
+| 🔧 [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Troubleshooting avanzato |
+| 🤝 [CONTRIBUTING.md](CONTRIBUTING.md) | Come contribuire |
+| 📋 [TODO.md](TODO.md) | Attività opzionali / roadmap |
 
 ## ❓ FAQ / Problemi comuni
 
@@ -578,64 +579,4 @@ Questo progetto è rilasciato sotto licenza MIT - vedi il file [LICENSE](LICENSE
 
 ---
 
-## 🎓 Per ulteriori informazioni
-
-- 📘 [Guida ai security unit test (formazione)](SECURITY-TESTING-GUIDE.md)
-- 📖 [Note sugli unit test](JUNIT-TEST.md)
-- 🏷️ [Security JUnit con tagging](JUNIT-TAG.md)
-- 🔧 [Troubleshooting avanzato](TROUBLESHOOTING.md)
-- 🤝 [Come contribuire](CONTRIBUTING.md)
-
----
-
 **Sviluppato con ❤️ per la community della sicurezza applicativa**
-
----
-
-## 🎁 Bonus — Conversione degli ID in UUID
-
-Come discusso nella sezione [Broken Access Control — Tipologie](#), l'uso di **ID sequenziali** espone l'applicazione a vulnerabilità di tipo **IDOR** (Insecure Direct Object Reference), rendendo banale per un attaccante enumerare le risorse.
-
-Una buona pratica è sostituire gli ID sequenziali con **UUID** casuali come identificatori pubblici delle risorse.
-
-### Modifiche necessarie
-
-**1. `PersonRepository.java`** — aggiungere il metodo di ricerca per UUID:
-```java
-/**
- * Cerca una persona tramite il campo UUID.
- *
- * @param uuid l'UUID della persona da cercare
- * @return la {@link Person} corrispondente all'UUID fornito, o {@code null} se non trovata
- */
-public Person findByUuid(String uuid) {
-    return find("uuid", uuid).firstResult();
-}
-```
-
-**2. `DocResource.java`** — generare l'UUID alla creazione e usarlo come identificatore nei path:
-
-- Alla creazione della persona, generare un UUID casuale:
-```java
-person.setUuid(UUID.randomUUID().toString());
-```
-- Restituire l'UUID invece dell'ID sequenziale nella risposta:
-```java
-response.setUuid(person.getUuid());
-```
-- Sostituire `{id}` con `{uuid}` negli endpoint `findPerson` e `deletePerson`:
-```
-GET    /doc/person/find/{uuid}
-DELETE /doc/person/delete/{uuid}
-```
-
-### Perché è importante
-
-| | ID Sequenziale | UUID |
-|---|---|---|
-| Esempio | `/person/find/42` | `/person/find/a3f1c2d4-...` |
-| Enumerabile | ✅ facilmente | ❌ praticamente impossibile |
-| Prevedibile | ✅ sì | ❌ no |
-| Sicurezza | ⚠️ bassa | ✅ alta |
-
-> 💡 L'UUID non sostituisce i controlli di autorizzazione — è un ulteriore livello di difesa. Le vulnerabilità (1), (4) del laboratorio devono comunque essere corrette indipendentemente dall'uso degli UUID.
