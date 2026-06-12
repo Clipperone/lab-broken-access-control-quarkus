@@ -1,6 +1,6 @@
 # Guida ai Security Unit Test per i controlli di autorizzazione
 
-> Riferimento aziendale per progettare e implementare **unit test di sicurezza sull'autorizzazione**
+> Riferimento per progettare e implementare **unit test di sicurezza sull'autorizzazione**
 > (OWASP **A01 – Broken Access Control**). Complementa, non sostituisce, gli strumenti **SAST/DAST**:
 > dove SAST/DAST segnalano *che* esiste un problema, gli unit test fissano *il comportamento atteso*
 > e lo proteggono da regressioni nel tempo.
@@ -24,8 +24,8 @@
 
 ## Scopo e approccio
 
-L'obiettivo è formare gli sviluppatori a scrivere, **nel proprio codice applicativo**, test automatici
-che verifichino i controlli autorizzativi. Esercizi ed esempi hanno **difficoltà incrementale**, per
+L'obiettivo è informare gli sviluppatori a scrivere, **nel proprio codice applicativo**, test automatici
+che verifichino i controlli autorizzativi. Esercizi ed esempi con **complessità incrementale**, per
 fornire riferimenti sia semplici sia complessi da applicare all'interno del proprio codice
 (vedi [Learning path](#learning-path)):
 
@@ -49,17 +49,28 @@ i test 401 esistono (`DocResourceSicurezzaTest`) ma sono test di *autenticazione
 
 | Classe | Tag | Cosa verifica | Dove vederla |
 |--------|-----|---------------|--------------|
-| **Function Level Access Control** (escalation verticale, verb tampering) | `function-level` | un ruolo basso non può eseguire un'azione riservata; un verbo HTTP non dichiarato è rifiutato | [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java) |
-| **Object Level Authorization** (BOLA / IDOR) | `object-level` | non puoi accedere a un oggetto fuori dai tuoi permessi; un oggetto inesistente non è distinguibile (anti-enumeration) | `DocResourceSicurezzaTest.testFindPersonKoForbidden` / `testFindPersonKoNotFound` |
-| **Mass assignment / Field-Level Authorization** | `field-level` | il client non controlla campi server-managed; un campo privilegiato è modificabile solo dal ruolo idoneo | [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java) |
+| **Function Level Access Control** (escalation verticale) | `function-level` | un ruolo basso non può eseguire un'azione riservata ad un ruolo con privilegi più alti; un verbo HTTP non dichiarato è rifiutato | [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java) |
+| **Object Level Authorization** (BOLA / IDOR) | `object-level` | non puoi accedere a un oggetto fuori dai tuoi permessi (fuori dal cono di visibilità); un oggetto inesistente non è distinguibile (anti-enumeration) | `DocResourceSicurezzaTest.testFindPersonKoForbidden` / `testFindPersonKoNotFound` |
+| **Mass assignment / Field-Level Authorization** | `field-level` | alcuni campi sono utilizzati solo lato server e non sono sotto il controllo del client (es. id, owner); un campo privilegiato è modificabile solo dal ruolo autorizzato | [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java) |
 | **Data filtering per ruolo** (escalation orizzontale) | `authorized` + `security` | liste/documenti mostrano solo i dati consentiti al ruolo | `DocResourceSicurezzaTest.testListPersonsResultKo` / `testOkMarkDownConVerificaContenutoUser` |
 | **Ownership-based access** (dati personali) | `ownership` | un dato è accessibile solo all'owner (e a un admin); modificabile solo dall'owner | [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java) |
-| **Multi-tenant / isolamento per ufficio** (+ gerarchia ruoli) | `tenant` | accesso definito da owner/ufficio/ruolo; un altro tenant non accede nemmeno se admin; draft/published; sharing | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
+| **Multi-tenant / isolamento per ufficio** (+ gerarchia ruoli) | `tenant` | accesso definito da owner/ufficio/ruolo; un admin di un altro tenant non accede; un documento ha un ciclo di vita draft/published; sharing | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
 | **Visibilità multi-parte + autorizzazione temporale** (appuntamenti) | `tenant` + `temporal` | visibile a creatore/destinatario/admin di ufficio; eliminazione solo dal creatore e solo se mancano > 24h | [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java) |
 
 ## Anatomia di uno Unit Test per il controllo autorizzativo
 
-Struttura del test **given / when / then** con RestAssured, e **due assert**: lo *status* e l'*effetto* (corpo/dati).
+Ogni test di autorizzazione segue lo schema **given / when / then**, espresso in modo fluente con RestAssured:
+
+- **given** — *prepara lo stato e l'identità*. Si costruisce lo scenario di partenza (es. una persona creata da un admin con un certo `minRole`) e si imposta **chi sta agendo**, tipicamente via header `Authorization: Bearer <jwt>` o con `@TestSecurity`. È la precondizione che rende il test deterministico e indipendente dagli altri.
+- **when** — *esegue la singola azione sotto esame*. Una sola chiamata HTTP all'endpoint (`GET`/`PUT`/`POST`/`DELETE`), con il verbo, il path e l'eventuale body che rappresentano il tentativo da verificare. Un test = un'azione: se ne servono di più, sono test separati.
+- **then** — *verifica l'esito*. Qui non basta un controllo solo.
+
+Il punto cruciale è che un test ben fatto contiene **due assert complementari**, che rispondono a due domande diverse:
+
+1. **Lo *status* HTTP è quello atteso?** (`200`, `403`, `401`, `405`…). Dimostra che il *meccanismo* di controllo si è attivato e ha deciso come previsto — ad esempio un `403 Forbidden` quando un ruolo insufficiente prova un'azione riservata.
+2. **L'*effetto* sui dati è corretto?** (corpo della risposta, stato persistito, contenuto delle liste). Lo status da solo può mentire: un endpoint potrebbe rispondere `200` e **comunque** aver applicato una modifica privilegiata o aver incluso dati riservati nella risposta. Per questo si verifica anche l'effetto reale — che il campo protetto sia *rimasto invariato*, che la lista *non contenga* i record fuori dal cono di visibilità, che owner/ufficio/stato siano quelli decisi dal server.
+
+In breve: lo *status* certifica che il controllo è scattato, l'*effetto* certifica che ha prodotto la conseguenza giusta. Saltare il secondo assert è l'errore più comune e lascia passare proprio le vulnerabilità di Broken Access Control che vogliamo intercettare.
 
 ```java
 @Test
@@ -131,8 +142,8 @@ Esito atteso per **endpoint × ruolo** (✅ = test presente). Le celle senza tes
 - Factory per i token (`DemoJwtGeneratorRest.generate*Token()`) invece di stringhe JWT incollate.
 - Assert su *status + effetto*, con messaggio esplicativo.
 - Tag a tre livelli: `security` (generico) + esito (`authorized`/`forbidden`) + classe (`object-level`/`function-level`/`field-level`).
-- Dati di test creati nel test, non mutazione del seed.
-- Per i campi privilegiati: autorizzazione sempre **lato server** con dati prelevati **lato server**; la validazione di formato (whitelist) è un filtro aggiuntivo, non un controllo di autorizzazione.
+- Creare i dati necessari per il test all'interno del test stesso, non utiilzzare i dati pre-caricati.
+- Per i modifiche sui campi che riguardano il profilo o ruolo di un utente, che cambiano quindi il suo livello di autorizzazione, gestire sempre **lato server** con dati prelevati **lato server**; la validazione di tipo whitelist (es. il valore di minRole può essere solo uno tra guest|user|admin) è un filtro aggiuntivo, non un controllo di autorizzazione.
 
 **Anti-pattern (evita):**
 - ❌ JWT hardcoded lunghissimi nei sorgenti (difficili da mantenere; usali solo per casi specifici come "token scaduto").
@@ -153,7 +164,10 @@ Esito atteso per **endpoint × ruolo** (✅ = test presente). Le celle senza tes
 ### Riferimenti complessi — esempi ed estensione
 1. Studia [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java) e [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java).
 2. Completa la [matrice di copertura](#matrice-di-copertura) per le celle senza test (es. `guest` su `list`/`find`).
-3. Affronta le nuance: modello dei ruoli (il filtro `minRole in (...)` è *set-membership*, non gerarchia), separazione dei DTO per ruolo, deny-by-default.
+3. **Affronta le nuance architetturali.** Sono i dettagli sottili che separano un controllo "che sembra giusto" da uno corretto:
+   - **Il modello dei ruoli è *set-membership*, non gerarchia.** L'autorizzazione object-level confronta `securityIdentity.getRoles().contains(person.getMinRole())`: l'oggetto dichiara *un* ruolo richiesto (`minRole`) e l'accesso passa solo se quel ruolo è **presente nell'insieme** dei ruoli dell'utente. Non c'è alcun "≥": avere `admin` non implica di per sé soddisfare un `minRole = user`. In pratica funziona solo perché i token sono coniati in modo **cumulativo** (`generateAdminToken` → `{admin, user, guest}`); un token con il solo `admin` *non* vedrebbe un oggetto con `minRole = user`. Dove serve davvero una gerarchia ordinata (`guest < user < admin`) la si modella esplicitamente con `RoleHierarchy`, come nello scenario multi-tenant — non la si dà per scontata.
+   - **Separa i DTO per ruolo e per direzione.** Non riusare la stessa classe per input e output né per tutti i livelli di privilegio: un campo privilegiato come `minRole` non dovrebbe nemmeno *comparire* nel contratto di chi non può modificarlo. DTO distinti (request vs response, e per livello di privilegio) chiudono mass assignment e over-posting alla radice, perché il campo sensibile non è proprio bindabile dal client non autorizzato — meglio non esporlo affatto che "ignorarlo" a runtime.
+   - **Deny-by-default.** Con `quarkus.security.jaxrs.deny-unannotated-endpoints=true` un endpoint privo di annotazione di sicurezza è **negato**, non aperto. È la rete di protezione contro l'"endpoint dimenticato": una rotta nuova, aggiunta senza pensare alla sicurezza, resta inaccessibile finché non dichiari esplicitamente chi può usarla, invece di finire esposta per distrazione.
 4. Applica il [ponte SAST/DAST → unit test](#ponte-sastdast--unit-test) ai finding reali del tuo progetto.
 
 ## Checklist: aggiungere un nuovo security test

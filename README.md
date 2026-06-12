@@ -36,11 +36,10 @@ su [DocResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/D
 È il percorso descritto in questo README: [Quickstart](#quickstart) → [Lo scenario](#lo-scenario) →
 [Workflow del laboratorio](#workflow-del-laboratorio) → [Vulnerabilità dimostrative](#vulnerabilità-dimostrative).
 
-### 🏢 Percorso 2 — Riferimento formativo aziendale
+### 🏢 Percorso 2 — Riferimento Scrittura Unit Test di Sicurezza
 
 Il progetto è anche un **riferimento per scrivere unit test di sicurezza sui controlli di
-autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Scenari di riferimento
-(esempi già corretti, con test esemplari):
+autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Scenari di riferimento:
 
 - **Function Level Access Control & verb tampering** → [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java)
 - **Mass assignment & Field-Level Authorization** → [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java)
@@ -196,7 +195,7 @@ Esiste una base dati di persone (sono entità di dominio, non utenti). La tabell
 
 ### Mappatura ruoli / permessi / metodo http
 
-L'applicazione è configurata per gestire 3 ruoli e 4 path, che generano lo stesso documento in formati diversi. Non tutti i ruoli sono autorizzati a generare ogni path. Ecco la mappa dei permessi:
+L'applicazione gestisce 3 ruoli ed espone dei path che generare documenti in diversi formati o modificare i dati del sistema. Non tutti i ruoli sono autorizzati a richiamare ogni path. Ecco la mappa dei permessi:
 
 | Path                          | Output      | Ruoli autorizzati  | Metodo http |
 |-------------------------------|-------------|--------------------|-------------|
@@ -212,9 +211,9 @@ L'applicazione è configurata per gestire 3 ruoli e 4 path, che generano lo stes
 
 > (*) Eccetto gli utenti con ruolo 'admin', su questi path potrebbe esserci una limitazione ai dati mostrati in base al ruolo minimo richiesto.
 
-> (**) Il ruolo 'user' può modificare solo i campi anagrafici (nome, cognome, titolo); il campo privilegiato `minRole` è modificabile solo da 'admin' (autorizzazione a livello di campo).
+> (**) Il ruolo 'user' può modificare solo i campi anagrafici (nome, cognome, titolo); esiste un ulteriore campo privilegiato `minRole` modificabile solo da 'admin' (autorizzazione a livello di campo).
 
-**Ruoli e permessi dettagliati:**
+**Esempio di ruoli e permessi:**
 
 | Ruolo   | Permessi                           | Esempio di utilizzo                         |
 |---------|------------------------------------|---------------------------------------------|
@@ -222,8 +221,7 @@ L'applicazione è configurata per gestire 3 ruoli e 4 path, che generano lo stes
 | `user`  | Accesso a MarkDown e HTML          | Vedere Hack e Turing, documenti base        |
 | `guest` | Accesso solo a MarkDown            | Visualizzazione read-only limitata          |
 
-Gli scenari di autorizzazione a grana fine (note personali, documenti di ufficio, appuntamenti) sono
-descritti in [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) (endpoint, regole, identità e dati demo).
+Sono implementati ulteriori esempi di autorizzazione a grana fine (note personali, documenti di ufficio, appuntamenti) descritti in [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) (endpoint, regole, identità e dati demo).
 
 ## Workflow del laboratorio
 
@@ -270,7 +268,7 @@ Cerca la vulnerabilità (X) che non è coperta dai test. Suggerimenti:
 
 ## Vulnerabilità dimostrative
 
-Questo laboratorio include 6 vulnerabilità reali di tipo Broken Access Control:
+Questo laboratorio include 6 vulnerabilità di tipo Broken Access Control:
 
 | #   | Vulnerabilità                 | Classificazione | Endpoint                                                   | Status   |
 |-----|-------------------------------|-----------------|------------------------------------------------------------|----------|
