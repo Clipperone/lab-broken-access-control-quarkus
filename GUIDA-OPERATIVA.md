@@ -17,7 +17,7 @@ più basilare al più avanzato. Per il *come progettare* i test vedi [SECURITY-T
 4. **Ottieni un token** (endpoint demo) e premi **Authorize** incollando `Bearer <token>`:
    - ruoli semplici: `GET /demo/admin,user.txt`
    - con ufficio (scenari multi-tenant): `GET /demo/office/FISICA/EINSTEIN/user,guest.txt`
-5. **Prova gli endpoint** con ruoli/uffici diversi e osserva **200 / 401 / 403 / 405**: è il modo più rapido per "sentire" le regole.
+5. **Prova gli endpoint** con ruoli/uffici diversi e osserva **200 / 401 / 403 / 405**: è il modo più rapido per comprendere le regole.
 6. **Leggi lo scenario** nel [README.md](README.md) (ruoli, persone, mappa permessi); le identità e i dati demo per gli scenari a grana fine sono [qui sotto](#identità-e-dati-demo-per-gli-scenari-a-grana-fine).
 7. **Dove guardare il codice**: le risorse REST in `…/control/*Resource.java`; le regole fini dentro i metodi; i test in `src/test/java/…`.
 8. **Ciclo di sviluppo**: branch dedicato → modifica → `mvn verify -P security` → tagga i nuovi test (`security` + esito + classe) o il gate fallisce.

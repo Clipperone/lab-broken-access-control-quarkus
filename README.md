@@ -51,7 +51,7 @@ autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Scenari d
 
 Documenti dedicati:
 
-- 📘 **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)** — *come progettare* i test: anatomia di un test di autorizzazione, ponte SAST/DAST → unit test, pattern/anti-pattern, percorso a difficoltà incrementale, matrice di copertura.
+- 📘 **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)** — *come progettare* i test: struttura di un test di autorizzazione, casi d'uso → unit test, pattern/anti-pattern, percorso a difficoltà incrementale, matrice di copertura.
 - 🧭 **[GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md)** — onboarding step-by-step, descrizione di tutti i metodi OpenAPI, catalogo dei test dal più basilare al più avanzato, **identità e dati demo** per provare gli scenari a grana fine.
 - 🖥️ **Console didattica** su <http://localhost:8080/ui/> (in dev): prova gli scenari dal browser cambiando identità e osservando esito + spiegazione.
 
