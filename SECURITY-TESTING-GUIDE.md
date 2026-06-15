@@ -12,8 +12,8 @@
   - [Scopo e approccio](#scopo-e-approccio)
   - [Autenticazione vs Autorizzazione (401 vs 403)](#autenticazione-vs-autorizzazione-401-vs-403)
   - [Le classi di Broken Access Control coperte](#le-classi-di-broken-access-control-coperte)
-  - [Anatomia di uno Unit Test per il controllo autorizzativo](#anatomia-di-uno-unit-test-per-il-controllo-autorizzativo)
-  - [Ponte SAST/DAST → unit test](#ponte-sastdast--unit-test)
+  - [Struttura di uno Unit Test per il controllo autorizzativo](#struttura-di-uno-unit-test-per-il-controllo-autorizzativo)
+  - [Casi d'uso per la creazione di Unit Test](#casi-duso-per-la-creazione-di-unit-test)
   - [Matrice di copertura](#matrice-di-copertura)
   - [Catalogo pattern \& anti-pattern](#catalogo-pattern--anti-pattern)
   - [Learning path](#learning-path)
@@ -57,7 +57,7 @@ i test 401 esistono (`DocResourceSicurezzaTest`) ma sono test di *autenticazione
 | **Multi-tenant / isolamento per ufficio** (+ gerarchia ruoli) | `tenant` | accesso definito da owner/ufficio/ruolo; un admin di un altro tenant non accede; un documento ha un ciclo di vita draft/published; sharing | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
 | **Visibilità multi-parte + autorizzazione temporale** (appuntamenti) | `tenant` + `temporal` | visibile a creatore/destinatario/admin di ufficio; eliminazione solo dal creatore e solo se mancano > 24h | [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java) |
 
-## Anatomia di uno Unit Test per il controllo autorizzativo
+## Struttura di uno Unit Test per il controllo autorizzativo
 
 Ogni test di autorizzazione segue lo schema **given / when / then**, espresso in modo fluente con RestAssured:
 
@@ -93,14 +93,14 @@ Principi:
 1. **Scrivere sempre** il caso negativo *e* quello positivo. Il 403 dimostra che il controllo c'è; il 200 dimostra che non hai rotto la funzionalità.
 2. **Verificare l'effetto, non solo lo status.** Es. dopo una modifica, controlla che il campo testato sia *rimasto invariato* (`testEditPersonUserCanEditAnagraphicFields`), o che la lista *non contenga* i dati riservati (`testListPersonsResultKo`).
 3. **Identità: `@TestSecurity` o JWT.** Usa `@TestSecurity(roles=...)` per fissare una identità singola; usa i JWT di `DemoJwtGeneratorRest` quando un test richiede **più identità** (es. *admin crea, user modifica*).
-4. **Isola i dati.** Non mutare i dati pre-caricati: crea dati freschi nel test (vedi `createPersonAsAdmin`).
+4. **Isolare i dati.** Non utilizzare dati pre-caricati: crea dati nuovi nel test (vedi `createPersonAsAdmin`).
 5. **Messaggi di assert utili.** `assertEquals("guest", minRoleDopo, "minRole non deve cambiare ...")` aiuta chi legge in caso di test fallito.
 
-## Ponte SAST/DAST → unit test
+## Casi d'uso per la creazione di Unit Test
 
-Quando uno strumento segnala un finding, traducilo in un **test di regressione** che blocchi la reintroduzione del problema. Mappa di riferimento:
+Gli scenari nei quali definire gli unit test dipendono dalla logica di business dell'applicazione, si riportano di seguito alcuni esempi da utilizzare come riferimento:
 
-| Finding tipico SAST/DAST | Classe OWASP A01 | Test di regressione da scrivere | Esempio nel repo |
+| Caso d'uso | Classe OWASP A01 | Test da scrivere | Esempio nel repo |
 |--------------------------|------------------|---------------------------------|------------------|
 | Endpoint senza controllo di accesso / "missing authorization" | Function-level | ruolo insufficiente sull'azione → 403 | `DocResourceFunctionLevelTest.testAddPersonUserKo` |
 | HTTP verb tampering / method override | Function-level | verbo non dichiarato → 405 | `DocResourceFunctionLevelTest.testVerbTamperingPutOnAddNotAllowed` |
@@ -115,7 +115,7 @@ Quando uno strumento segnala un finding, traducilo in un **test di regressione**
 | Broken access su risorsa relazionale | Relationship-based | visibile solo ai soggetti collegati (creatore/destinatario/admin di ufficio) | `AppointmentResourceTest.testUnrelatedSameOfficeForbidden` |
 | Broken/weak authentication *(authn — fuori scope authz)* | — | token assente/scaduto/non valido → 401 | `DocResourceSicurezzaTest.testUnauthorizedWithoutJwt` / `testExpiredJWT` |
 
-> Difesa strutturale complementare: `quarkus.security.jaxrs.deny-unannotated-endpoints=true` (deny-by-default)
+> Difesa strutturale: `quarkus.security.jaxrs.deny-unannotated-endpoints=true` (deny-by-default)
 > nega gli endpoint privi di annotazione di sicurezza, riducendo il rischio della classe
 > "endpoint dimenticato senza controllo".
 
@@ -142,7 +142,7 @@ Esito atteso per **endpoint × ruolo** (✅ = test presente). Le celle senza tes
 - Factory per i token (`DemoJwtGeneratorRest.generate*Token()`) invece di stringhe JWT incollate.
 - Assert su *status + effetto*, con messaggio esplicativo.
 - Tag a tre livelli: `security` (generico) + esito (`authorized`/`forbidden`) + classe (`object-level`/`function-level`/`field-level`).
-- Creare i dati necessari per il test all'interno del test stesso, non utiilzzare i dati pre-caricati.
+- Creare i dati necessari per il test all'interno del test stesso, non utilizzare i dati pre-caricati.
 - Per i modifiche sui campi che riguardano il profilo o ruolo di un utente, che cambiano quindi il suo livello di autorizzazione, gestire sempre **lato server** con dati prelevati **lato server**; la validazione di tipo whitelist (es. il valore di minRole può essere solo uno tra guest|user|admin) è un filtro aggiuntivo, non un controllo di autorizzazione.
 
 **Anti-pattern (evita):**

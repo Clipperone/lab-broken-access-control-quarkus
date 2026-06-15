@@ -4,7 +4,7 @@ Un laboratorio educativo completo per testare e comprendere le vulnerabilità [B
 
 > ⚠️ **ATTENZIONE**: Questo progetto contiene **intenzionalmente vulnerabilità di sicurezza** a scopo educativo. **NON utilizzare in produzione** e **NON esporre pubblicamente** senza aver rimosso tutte le vulnerabilità dimostrative.
 
-> 🟢 Questo branch contiene la **versione sanata** (vulnerabilità corrette, test verdi). Un branch con la versione vulnerabile, da usare come punto di partenza degli esercizi TDD, è previsto in roadmap (vedi [TODO.md](TODO.md)).
+> 🟢 Questo branch contiene la **versione sanata** (vulnerabilità corrette, test verdi). Per gli esercizi TDD red→green usa il branch `branch-vulnerable`.
 
 Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/) sono attualmente le più diffuse secondo il progetto [OWASP](https://owasp.org/). Sono al primo posto sia nella [OWASP Top 10](https://owasp.org/Top10/) del [2021](https://owasp.org/Top10/2021/) che [2025](https://owasp.org/Top10/2025/).
 
@@ -49,7 +49,7 @@ autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Scenari d
 
 Documenti dedicati:
 
-- 📘 **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)** — *come progettare* i test: anatomia di un test di autorizzazione, ponte SAST/DAST → unit test, pattern/anti-pattern, percorso a difficoltà incrementale, matrice di copertura.
+- 📘 **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)** — *come progettare* i test: struttura di un test di autorizzazione, casi d'uso → unit test, pattern/anti-pattern, percorso a difficoltà incrementale, matrice di copertura.
 - 🧭 **[GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md)** — onboarding step-by-step, descrizione di tutti i metodi OpenAPI, catalogo dei test dal più basilare al più avanzato, **identità e dati demo** per provare gli scenari a grana fine.
 - 🖥️ **Console didattica** su <http://localhost:8080/ui/> (in dev): prova gli scenari dal browser cambiando identità e osservando esito + spiegazione.
 
