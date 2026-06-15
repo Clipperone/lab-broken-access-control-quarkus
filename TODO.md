@@ -51,22 +51,12 @@ in [JUNIT-TAG.md](JUNIT-TAG.md) ("Note su test e coverage") e rivista la separaz
 
 ---
 
-## 3. Esercizi TDD su `branch-vulnerable` (varianti vulnerabili + test rossi) — 🔴
+## 3. ~~Esercizi TDD su `branch-vulnerable` (varianti vulnerabili + test rossi)~~ — ✅ FATTO
 
-**Contesto.** Gli scenari nuovi sono presenti solo come **esempi di riferimento** (già corretti su
-`main`). Mancano gli esercizi TDD red→green, perché il branch `branch-vulnerable` (citato dal README)
-**non esiste in questo clone**.
-
-**Da fare quando `branch-vulnerable` sarà disponibile:**
-- **Field-level (editPerson):** introdurre la variante vulnerabile in `DocResource.editPerson` che fa
-  binding di `minRole` anche per un `user` (privilege escalation di campo), con commento `// VULNERABILITY`.
-  Test rosso: `testEditPersonUserCannotChangeMinRole` (un `user` imposta `minRole=admin` → atteso 403).
-- **Function-level / verb tampering (vuln X):** reintrodurre un metodo `PUT /doc/person/add` **senza**
-  `@RolesAllowed` (`// VULNERABILITY: (X)`). Test rosso che invoca la PUT e attende 401/403.
-  Fix: rimuovere il metodo (`// SOLUTION: (X)`) e/o `deny-unannotated-endpoints` (già attivo su `main`).
-
-**Coordinamento branch:** la variante vulnerabile + test rosso su `branch-vulnerable`; la `// SOLUTION`
-+ test verde su `main`. Confermare la convenzione esatta dei due rami.
+**Completato.** Il branch `branch-vulnerable` è stato creato con tutte le vulnerabilità `(1)–(9f)`
+reintrodotte e marcate `// VULNERABILITY: (n)`. Eseguendo `mvn verify -P security` sul branch
+`branch-vulnerable` i 26 test negativi di sicurezza vanno in rosso; le soluzioni si trovano su
+questo branch (`feature/security-testing-training`) o su `main`.
 
 ---
 
