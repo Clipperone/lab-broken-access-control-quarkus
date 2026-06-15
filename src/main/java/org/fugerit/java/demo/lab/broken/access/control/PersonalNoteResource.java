@@ -90,10 +90,13 @@ public class PersonalNoteResource {
     @Transactional
     public Response read(@PathParam("uuid") String uuid) {
         PersonalNote note = this.repository.findByUuid(uuid);
-        // OWNERSHIP read: owner o admin. Inesistente o non autorizzato -> 403 uniforme (anti-enumeration)
-        if (note == null || !(note.getOwnerUpn().equals(currentUpn()) || isAdmin())) {
-            return Response.status(Response.Status.FORBIDDEN).build();
+        // VULNERABILITY: (7c) nota inesistente -> 404: rende le note enumerabili (404 vs 403). La soluzione
+        // è restituire FORBIDDEN identico al caso non autorizzato.
+        if (note == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
         }
+        // VULNERABILITY: (7a) OWNERSHIP read: manca il controllo di proprietà (owner o admin): chiunque
+        // legge la nota di chiunque. La soluzione è consentire la lettura solo a owner OPPURE admin.
         return Response.status(Response.Status.OK).entity(note.toDTO()).build();
     }
 
@@ -106,8 +109,10 @@ public class PersonalNoteResource {
     @Transactional
     public Response update(@PathParam("uuid") String uuid, @Valid PersonalNoteRequestDTO request) {
         PersonalNote note = this.repository.findByUuid(uuid);
-        // OWNERSHIP write: SOLO owner (un admin può leggere ma non modificare). Altrimenti 403 uniforme.
-        if (note == null || !note.getOwnerUpn().equals(currentUpn())) {
+        // VULNERABILITY: (7b) OWNERSHIP write: manca il controllo che SOLO l'owner possa modificare (un
+        // admin può leggere ma non modificare): chiunque modifica la nota altrui. La soluzione è il guard
+        // sull'owner. Si mantiene il 403 per nota inesistente (anti-enumeration).
+        if (note == null) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         note.setTitle(request.getTitle());

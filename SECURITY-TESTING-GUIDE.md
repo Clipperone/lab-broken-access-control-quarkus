@@ -1,18 +1,18 @@
-# Guida ai Security Unit Test per i controlli di autorizzazione
+# Unit Test per i controlli autorizzativi
 
-> Riferimento per progettare e implementare **unit test di sicurezza sull'autorizzazione**
+> Riferimento per progettare e implementare **Unit Test di sicurezza dedicati ai controlli autorizzativi**
 > (OWASP **A01 – Broken Access Control**). Complementa, non sostituisce, gli strumenti **SAST/DAST**:
 > dove SAST/DAST segnalano *che* esiste un problema, gli unit test fissano *il comportamento atteso*
 > e lo proteggono da regressioni nel tempo.
 
 ## Indice
 
-- [Guida ai Security Unit Test per i controlli di autorizzazione](#guida-ai-security-unit-test-per-i-controlli-di-autorizzazione)
+- [Unit Test per i controlli autorizzativi](#unit-test-per-i-controlli-autorizzativi)
   - [Indice](#indice)
   - [Scopo e approccio](#scopo-e-approccio)
   - [Autenticazione vs Autorizzazione (401 vs 403)](#autenticazione-vs-autorizzazione-401-vs-403)
   - [Le classi di Broken Access Control coperte](#le-classi-di-broken-access-control-coperte)
-  - [Anatomia di uno Unit Test per il controllo autorizzativo](#anatomia-di-uno-unit-test-per-il-controllo-autorizzativo)
+  - [Struttura di uno Unit Test per il controllo autorizzativo](#struttura-di-uno-unit-test-per-il-controllo-autorizzativo)
   - [Ponte SAST/DAST → unit test](#ponte-sastdast--unit-test)
   - [Matrice di copertura](#matrice-di-copertura)
   - [Catalogo pattern \& anti-pattern](#catalogo-pattern--anti-pattern)
@@ -24,9 +24,9 @@
 
 ## Scopo e approccio
 
-L'obiettivo è informare gli sviluppatori a scrivere, **nel proprio codice applicativo**, test automatici
-che verifichino i controlli autorizzativi. Esercizi ed esempi con **complessità incrementale**, per
-fornire riferimenti sia semplici sia complessi da applicare all'interno del proprio codice
+L'obiettivo è fornire dei riferimenti per scrivere, **nel proprio codice applicativo**, test automatici
+che verifichino i controlli autorizzativi. Il laboratorio propone esercizi ed esempi con **complessità incrementale**, per
+fornire riferimenti sia semplici sia complessi da applicare all'interno del proprio codice.
 (vedi [Learning path](#learning-path)):
 
 - **Riferimenti semplici** → esercizi hands-on TDD: parti da una vulnerabilità, fai fallire il test, applica la correzione.
@@ -53,19 +53,19 @@ i test 401 esistono (`DocResourceSicurezzaTest`) ma sono test di *autenticazione
 | **Object Level Authorization** (BOLA / IDOR) | `object-level` | non puoi accedere a un oggetto fuori dai tuoi permessi (fuori dal cono di visibilità); un oggetto inesistente non è distinguibile (anti-enumeration) | `DocResourceSicurezzaTest.testFindPersonKoForbidden` / `testFindPersonKoNotFound` |
 | **Mass assignment / Field-Level Authorization** | `field-level` | alcuni campi sono utilizzati solo lato server e non sono sotto il controllo del client (es. id, owner); un campo privilegiato è modificabile solo dal ruolo autorizzato | [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java) |
 | **Data filtering per ruolo** (escalation orizzontale) | `authorized` + `security` | liste/documenti mostrano solo i dati consentiti al ruolo | `DocResourceSicurezzaTest.testListPersonsResultKo` / `testOkMarkDownConVerificaContenutoUser` |
-| **Ownership-based access** (dati personali) | `ownership` | un dato è accessibile solo all'owner (e a un admin); modificabile solo dall'owner | [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java) |
-| **Multi-tenant / isolamento per ufficio** (+ gerarchia ruoli) | `tenant` | accesso definito da owner/ufficio/ruolo; un admin di un altro tenant non accede; un documento ha un ciclo di vita draft/published; sharing | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
-| **Visibilità multi-parte + autorizzazione temporale** (appuntamenti) | `tenant` + `temporal` | visibile a creatore/destinatario/admin di ufficio; eliminazione solo dal creatore e solo se mancano > 24h | [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java) |
+| **Ownership-based access** (dati personali) | `ownership` | un dato è accessibile in lettura solo all'owner o un admin e modificabile solo dall'owner | [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java) |
+| **Multi-tenant / isolamento per ufficio** (+ gerarchia ruoli) | `tenant` | accesso definito da owner/ufficio/ruolo; un admin di un altro ufficio non accede a dati di uffici differenti; un documento ha un ciclo di vita da draft a published; | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
+| **Visibilità multi-parte + autorizzazione temporale** (appuntamenti) | `tenant` + `temporal` | appuntamenti visibili a creatore/destinatario/admin di ufficio; eliminazione solo dal creatore e solo se mancano > 24h | [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java) |
 
-## Anatomia di uno Unit Test per il controllo autorizzativo
+## Struttura di uno Unit Test per il controllo autorizzativo
 
 Ogni test di autorizzazione segue lo schema **given / when / then**, espresso in modo fluente con RestAssured:
 
 - **given** — *prepara lo stato e l'identità*. Si costruisce lo scenario di partenza (es. una persona creata da un admin con un certo `minRole`) e si imposta **chi sta agendo**, tipicamente via header `Authorization: Bearer <jwt>` o con `@TestSecurity`. È la precondizione che rende il test deterministico e indipendente dagli altri.
 - **when** — *esegue la singola azione sotto esame*. Una sola chiamata HTTP all'endpoint (`GET`/`PUT`/`POST`/`DELETE`), con il verbo, il path e l'eventuale body che rappresentano il tentativo da verificare. Un test = un'azione: se ne servono di più, sono test separati.
-- **then** — *verifica l'esito*. Qui non basta un controllo solo.
+- **then** — *verifica l'esito*. Qui potrebbe non bastare un controllo solo.
 
-Il punto cruciale è che un test ben fatto contiene **due assert complementari**, che rispondono a due domande diverse:
+Un test ben fatto contiene **due assert complementari**, che rispondono a due domande diverse:
 
 1. **Lo *status* HTTP è quello atteso?** (`200`, `403`, `401`, `405`…). Dimostra che il *meccanismo* di controllo si è attivato e ha deciso come previsto — ad esempio un `403 Forbidden` quando un ruolo insufficiente prova un'azione riservata.
 2. **L'*effetto* sui dati è corretto?** (corpo della risposta, stato persistito, contenuto delle liste). Lo status da solo può mentire: un endpoint potrebbe rispondere `200` e **comunque** aver applicato una modifica privilegiata o aver incluso dati riservati nella risposta. Per questo si verifica anche l'effetto reale — che il campo protetto sia *rimasto invariato*, che la lista *non contenga* i record fuori dal cono di visibilità, che owner/ufficio/stato siano quelli decisi dal server.

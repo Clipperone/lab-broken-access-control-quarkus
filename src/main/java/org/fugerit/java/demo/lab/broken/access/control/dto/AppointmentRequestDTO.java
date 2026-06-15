@@ -42,4 +42,10 @@ public class AppointmentRequestDTO {
     @Schema(description = "oggetto dell'appuntamento")
     private String subject;
 
+    // VULNERABILITY: (9e) 'creatorUpn' è server-managed e NON dovrebbe essere esposto nel contratto: la sua
+    // presenza nel DTO abilita il mass assignment (il client può impostare il creatore). La soluzione è
+    // rimuoverlo e ricavare il creatore dall'identità autenticata lato server.
+    @Schema(description = "(server-managed) creatore dell'appuntamento", hidden = true)
+    private String creatorUpn;
+
 }

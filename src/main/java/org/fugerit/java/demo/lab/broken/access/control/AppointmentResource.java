@@ -68,9 +68,15 @@ public class AppointmentResource {
     /** Visibile a: creatore, scienziato destinatario, oppure admin dello stesso ufficio. */
     private boolean canView(Appointment a) {
         String me = currentUpn();
+        // VULNERABILITY: (9a) la clausola admin ha perso l'isolamento per ufficio (Objects.equals(currentOffice(), a.getOffice())):
+        //   un admin di QUALSIASI ufficio vede l'appuntamento.
+        // VULNERABILITY: (9b) è stata aggiunta una clausola che concede visibilità a CHIUNQUE dello stesso ufficio,
+        //   non solo a creatore/scienziato/admin: visibilità relationship-based troppo ampia.
+        // La soluzione è: creatore OPPURE scienziato destinatario OPPURE (admin E stesso ufficio).
         return me.equals(a.getCreatorUpn())
                 || me.equals(a.getScientistUpn())
-                || (isAdmin() && Objects.equals(currentOffice(), a.getOffice()));
+                || isAdmin()
+                || Objects.equals(currentOffice(), a.getOffice());
     }
 
     private boolean isCreator(Appointment a) {
@@ -86,8 +92,13 @@ public class AppointmentResource {
     public Response create(@Valid AppointmentRequestDTO request) {
         Appointment a = new Appointment();
         a.setUuid(UUID.randomUUID().toString());
-        // ANTI MASS-ASSIGNMENT: il creatore è l'identità autenticata, mai un dato del client
+        // il creatore deriva dall'identità (default server-side)
         a.setCreatorUpn(currentUpn());
+        // VULNERABILITY: (9e) MASS ASSIGNMENT: 'creatorUpn' è server-managed, ma se presente nel DTO viene
+        // accettato dal client, sovrascrivendo l'identità. La soluzione è non esporlo nel DTO e impostarlo lato server.
+        if (request.getCreatorUpn() != null) {
+            a.setCreatorUpn(request.getCreatorUpn());
+        }
         a.setScientistUpn(request.getScientistUpn());
         a.setOffice(request.getOffice());
         a.setAppointmentAt(request.getAppointmentAt());
@@ -116,7 +127,12 @@ public class AppointmentResource {
     @Transactional
     public Response read(@PathParam("uuid") String uuid) {
         Appointment a = this.repository.findByUuid(uuid);
-        if (a == null || !canView(a)) {
+        // VULNERABILITY: (9f) appuntamento inesistente -> 404: lo rende enumerabile (404 vs 403). La soluzione
+        // è restituire FORBIDDEN identico al caso non visibile.
+        if (a == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        if (!canView(a)) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         return Response.status(Response.Status.OK).entity(a.toDTO()).build();
@@ -129,15 +145,14 @@ public class AppointmentResource {
     @Transactional
     public Response delete(@PathParam("uuid") String uuid) {
         Appointment a = this.repository.findByUuid(uuid);
-        // ownership: solo il creatore. Inesistente/non creatore -> 403 uniforme (anti-enumeration)
-        if (a == null || !isCreator(a)) {
+        // VULNERABILITY: (9d) manca il controllo di ownership (solo il creatore può cancellare): chiunque
+        // cancella l'appuntamento altrui. La soluzione è il guard isCreator(a). Si mantiene il 403 per
+        // appuntamento inesistente (anti-enumeration).
+        if (a == null) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
-        // AUTORIZZAZIONE TEMPORALE: consentita solo se mancano più di 24h all'appuntamento
-        LocalDateTime limit = a.getAppointmentAt().minusHours(CANCELLATION_LIMIT_HOURS);
-        if (!LocalDateTime.now().isBefore(limit)) {
-            return Response.status(Response.Status.FORBIDDEN).build();
-        }
+        // VULNERABILITY: (9c) manca l'AUTORIZZAZIONE TEMPORALE: la cancellazione deve essere consentita solo
+        // se mancano più di 24h all'appuntamento (limite = appointmentAt - 24h, e ora < limite). Va ripristinata.
         a.delete();
         return Response.status(Response.Status.OK).build();
     }
@@ -151,8 +166,9 @@ public class AppointmentResource {
     @Transactional
     public Response move(@PathParam("uuid") String uuid, @Valid AppointmentMoveRequestDTO request) {
         Appointment a = this.repository.findByUuid(uuid);
-        // solo il creatore può spostare (in qualsiasi momento)
-        if (a == null || !isCreator(a)) {
+        // VULNERABILITY: (9d) manca il controllo che SOLO il creatore possa spostare: chiunque sposta
+        // l'appuntamento altrui. La soluzione è il guard isCreator(a). Si mantiene il 403 per inesistente.
+        if (a == null) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         a.setAppointmentAt(request.getNewAppointmentAt());

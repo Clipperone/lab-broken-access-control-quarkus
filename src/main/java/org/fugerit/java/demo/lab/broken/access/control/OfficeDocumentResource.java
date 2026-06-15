@@ -74,18 +74,21 @@ public class OfficeDocumentResource {
     private boolean canRead(OfficeDocument doc) {
         boolean owner = currentUpn().equals(doc.getOwnerUpn());
         boolean shared = doc.getSharedWith().contains(currentUpn());
-        boolean officeRule = OfficeDocument.STATUS_PUBLISHED.equals(doc.getStatus())
-                && Objects.equals(currentOffice(), doc.getOwnerOffice())
-                && RoleHierarchy.isAtLeast(this.securityIdentity.getRoles(), doc.getOwnerRole());
+        // VULNERABILITY: (8a) manca il vincolo che il documento sia PUBLISHED (le bozze devono restare private all'owner);
+        // VULNERABILITY: (8b) manca l'isolamento per ufficio (Objects.equals(currentOffice(), doc.getOwnerOffice()));
+        // VULNERABILITY: (8c) manca il vincolo di gerarchia di ruolo (RoleHierarchy.isAtLeast(ruoli, doc.getOwnerRole())).
+        // Risultato: qualsiasi utente autenticato legge qualsiasi documento. La soluzione è ripristinare le tre condizioni in AND.
+        boolean officeRule = true;
         return owner || shared || officeRule;
     }
 
     /** Modifica/cancellazione: owner, oppure admin dello stesso ufficio su documento PUBLISHED. */
     private boolean canWrite(OfficeDocument doc) {
         boolean owner = currentUpn().equals(doc.getOwnerUpn());
-        boolean officeAdminRule = OfficeDocument.STATUS_PUBLISHED.equals(doc.getStatus())
-                && Objects.equals(currentOffice(), doc.getOwnerOffice())
-                && isAdmin();
+        // VULNERABILITY: (8b) manca l'isolamento per ufficio (Objects.equals(currentOffice(), doc.getOwnerOffice()));
+        // VULNERABILITY: (8d) manca il vincolo che il chiamante non-owner sia admin (isAdmin()).
+        // Risultato: chiunque può modificare/cancellare un documento PUBLISHED. La soluzione è richiedere stesso ufficio E admin.
+        boolean officeAdminRule = OfficeDocument.STATUS_PUBLISHED.equals(doc.getStatus());
         return owner || officeAdminRule;
     }
 
@@ -98,11 +101,26 @@ public class OfficeDocumentResource {
     public Response create(@Valid OfficeDocumentRequestDTO request) {
         OfficeDocument doc = new OfficeDocument();
         doc.setUuid(UUID.randomUUID().toString());
-        // SERVER-SIDE (anti mass-assignment): owner, ufficio e ruolo soglia derivano dall'identità
+        // owner, ufficio e ruolo soglia derivano dall'identità (default server-side)
         doc.setOwnerUpn(currentUpn());
         doc.setOwnerOffice(currentOffice());
         doc.setOwnerRole(RoleHierarchy.highestRoleCode(this.securityIdentity.getRoles()));
         doc.setStatus(OfficeDocument.STATUS_DRAFT);
+        // VULNERABILITY: (8e) MASS ASSIGNMENT: owner/ufficio/ruolo/stato sono campi server-managed, ma se
+        // presenti nel DTO vengono accettati dal client, sovrascrivendo i valori derivati dall'identità.
+        // La soluzione è NON esporre questi campi nel DTO e impostarli sempre e solo lato server.
+        if (request.getOwnerUpn() != null) {
+            doc.setOwnerUpn(request.getOwnerUpn());
+        }
+        if (request.getOwnerOffice() != null) {
+            doc.setOwnerOffice(request.getOwnerOffice());
+        }
+        if (request.getOwnerRole() != null) {
+            doc.setOwnerRole(request.getOwnerRole());
+        }
+        if (request.getStatus() != null) {
+            doc.setStatus(request.getStatus());
+        }
         doc.setFileName(request.getFileName());
         doc.setContent(request.getContent());
         doc.persistAndFlush();
@@ -129,8 +147,12 @@ public class OfficeDocumentResource {
     @Transactional
     public Response read(@PathParam("uuid") String uuid) {
         OfficeDocument doc = this.repository.findByUuid(uuid);
-        // anti-enumeration: inesistente o non leggibile -> 403 identico
-        if (doc == null || !canRead(doc)) {
+        // VULNERABILITY: (8f) documento inesistente -> 404: lo rende enumerabile (404 vs 403). La soluzione
+        // è restituire FORBIDDEN identico al caso non leggibile.
+        if (doc == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        if (!canRead(doc)) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
         return Response.status(Response.Status.OK).entity(doc.toDTO()).build();

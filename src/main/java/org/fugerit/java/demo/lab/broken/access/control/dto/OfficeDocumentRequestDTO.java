@@ -29,4 +29,19 @@ public class OfficeDocumentRequestDTO {
     @Schema(description = "Contenuto testuale del documento")
     private String content;
 
+    // VULNERABILITY: (8e) questi campi sono server-managed e NON dovrebbero essere esposti nel contratto:
+    // la loro presenza nel DTO abilita il mass assignment (il client può impostare owner/ufficio/ruolo/stato).
+    // La soluzione è rimuoverli dal DTO e impostarli sempre lato server in base all'identità autenticata.
+    @Schema(description = "(server-managed) owner del documento", hidden = true)
+    private String ownerUpn;
+
+    @Schema(description = "(server-managed) ufficio del documento", hidden = true)
+    private String ownerOffice;
+
+    @Schema(description = "(server-managed) ruolo soglia del documento", hidden = true)
+    private String ownerRole;
+
+    @Schema(description = "(server-managed) stato del documento", hidden = true)
+    private String status;
+
 }

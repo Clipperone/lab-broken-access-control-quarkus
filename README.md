@@ -4,7 +4,9 @@ Un laboratorio educativo completo per testare e comprendere le vulnerabilità [B
 
 > ⚠️ **ATTENZIONE**: Questo progetto contiene **intenzionalmente vulnerabilità di sicurezza** a scopo educativo. **NON utilizzare in produzione** e **NON esporre pubblicamente** senza aver rimosso tutte le vulnerabilità dimostrative.
 
-> 🟢 Questo branch contiene la **versione sanata** (vulnerabilità corrette, test verdi). Un branch con la versione vulnerabile, da usare come punto di partenza degli esercizi TDD, è previsto in roadmap (vedi [TODO.md](TODO.md)).
+> 🔴 **Sei sul `branch-vulnerable`**: il codice contiene **vulnerabilità intenzionali** (cerca i marcatori `// VULNERABILITY: (n)`).
+> Esegui `mvn verify -P security` per vedere i test rossi, poi correggi le vulnerabilità fino al verde.
+> Le soluzioni si trovano sul branch sanato (`main`).
 
 Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/) sono attualmente le più diffuse secondo il progetto [OWASP](https://owasp.org/). Sono al primo posto sia nella [OWASP Top 10](https://owasp.org/Top10/) del [2021](https://owasp.org/Top10/2021/) che [2025](https://owasp.org/Top10/2025/).
 
