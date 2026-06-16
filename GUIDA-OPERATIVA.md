@@ -184,7 +184,7 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testNonOwnerAdminCannotEditNote` (403) | L'admin può leggere ma **non** modificare la nota altrui |
 | `testReadNonExistentNote` (403) | Nota inesistente → 403 (anti-enumeration) |
 
-### Livello 7 — Multi-tenant per ufficio + gerarchia, draft & sharing (avanzato) — `OfficeDocumentResourceTest`
+### Livello 7 — Isolamento multi-tenant per ufficio, gerarchia di ruoli, draft/published e sharing — `OfficeDocumentResourceTest`
 | Test | Descrizione |
 |------|-------------|
 | `testOwnerReadsOwnDraft` (200) | L'owner legge la propria bozza (DRAFT) |
@@ -201,7 +201,7 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testSharingGrantsCrossOfficeRead` (200) | Un utente di ufficio diverso, se **condiviso**, può leggere |
 | `testNotSharedCrossOfficeForbidden` (403) | Un utente di ufficio diverso **non** condiviso non legge |
 
-### Livello 8 — Visibilità multi-parte & autorizzazione temporale — `AppointmentResourceTest`
+### Livello 8 — Visibilità multi-parte, autorizzazione temporale e ownership del creatore — `AppointmentResourceTest`
 | Test | Descrizione |
 |------|-------------|
 | `testCreatorCanView` (200) | Il creatore vede il proprio appuntamento |
