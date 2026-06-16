@@ -276,7 +276,6 @@ Questo laboratorio include **15 vulnerabilità** di tipo Broken Access Control, 
 
 | #   | Scenario / Vulnerabilità              | Classificazione   | Endpoint                                              | Status   |
 |-----|---------------------------------------|-------------------|-------------------------------------------------------|----------|
-| **DocResource** — Autorizzazione function/field-level + IDOR + anti-enumeration |
 | (1) | IDOR: ID Enumeration                 | IDOR              | `GET /doc/person/find/{uuid}`                         | 🟢 Fixed |
 | (2) | Privilege Escalation (Data filtering)| BOLA              | `GET /doc/example.md`, `/doc/example.html`, `/doc/person/list` | 🟢 Fixed |
 | (3) | Privilege Escalation (Delete action) | BOLA              | `DELETE /doc/person/delete/{uuid}`                    | 🟢 Fixed |
@@ -284,18 +283,15 @@ Questo laboratorio include **15 vulnerabilità** di tipo Broken Access Control, 
 | (5) | Missing Authentication               | Access Control    | `GET /doc/example.md`                                 | 🟢 Fixed |
 | (6) | Field-Level Authorization + Mass Assignment | Field-level | `PUT /doc/person/edit/{uuid}`                         | 🟢 Fixed |
 | (X) | Verb Tampering (Hidden, no test)     | Function-level    | `PUT /doc/person/add`                                 | 🟢 Fixed |
-| **PersonalNoteResource** — Ownership-based access + anti-enumeration |
 | (7a) | Ownership read: accesso non ristretto | Ownership       | `GET /doc/note/{uuid}`                                | 🟢 Fixed |
 | (7b) | Ownership write: solo owner           | Ownership         | `PUT /doc/note/{uuid}`                                | 🟢 Fixed |
 | (7c) | Anti-enumeration: IDOR               | IDOR              | `GET /doc/note/{uuid}` (non esiste)                   | 🟢 Fixed |
-| **OfficeDocumentResource** — Multi-tenant per ufficio + gerarchia ruoli + draft/published + anti-enumeration |
 | (8a) | State visibility: Draft visibility    | Access Control    | `GET /doc/officedoc/list`, `GET /doc/officedoc/{uuid}` | 🟢 Fixed |
 | (8b) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/officedoc/{uuid}` (ufficio diverso)         | 🟢 Fixed |
 | (8c) | Role hierarchy: Missing role check    | BOLA              | `GET /doc/officedoc/{uuid}` (ruolo < owner minRole)   | 🟢 Fixed |
 | (8d) | Privilege escalation: Non-owner edit  | BOLA              | `PUT /doc/officedoc/{uuid}` (non owner/non admin)     | 🟢 Fixed |
 | (8e) | Mass Assignment: Server-managed fields | Field-level     | `POST /doc/officedoc` (client sets owner/office/role) | 🟢 Fixed |
 | (8f) | Anti-enumeration: IDOR               | IDOR              | `GET /doc/officedoc/{uuid}` (non esiste)              | 🟢 Fixed |
-| **AppointmentResource** — Multi-part visibility + temporal authorization + ownership + anti-enumeration |
 | (9a) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/appointment/{uuid}` (ufficio diverso)       | 🟢 Fixed |
 | (9b) | Over-broad visibility (same office)   | BOLA              | `GET /doc/appointment/{uuid}` (non correlato)         | 🟢 Fixed |
 | (9c) | Temporal authorization: Delete window | Temporal          | `DELETE /doc/appointment/{uuid}` (< 24h)              | 🟢 Fixed |
@@ -383,9 +379,9 @@ Un utente non-owner riesce a leggere una nota che non gli appartiene (senza esse
 
 **Soluzione**: Controllare che l'utente sia owner o admin prima di restituire la nota
 
-#### (7b) Ownership Write: Modificazione non ristretta
+#### (7b) Ownership Write: Modifica non ristretta
 
-Un admin riesce a modificare una nota altrui (gli ownership garantisce lettura, ma **non** modifica).
+Un admin riesce a modificare una nota altrui (l'ownership garantisce lettura, ma **non** modifica).
 
 **Endpoint**: `PUT /doc/note/{uuid}`
 
