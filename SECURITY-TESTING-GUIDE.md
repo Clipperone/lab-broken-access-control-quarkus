@@ -49,11 +49,11 @@ i test 401 esistono (`DocResourceSicurezzaTest`) ma sono test di *autenticazione
 
 | Classe | Tag | Cosa verifica | Dove vederla |
 |--------|-----|---------------|--------------|
-| **Function Level Access Control** (escalation verticale) | `function-level` | un ruolo basso non può eseguire un'azione riservata a un ruolo con privilegi più alti | [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java) |
-| **Verb Tampering** | `function-level` | un verbo HTTP non dichiarato è rifiutato (405) | [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java) |
+| **Function Level Access Control** (escalation verticale) | `function-level` | un ruolo basso non può eseguire un'azione riservata a un ruolo con privilegi più alti | [PersonResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFunctionLevelTest.java) |
+| **Verb Tampering** | `function-level` | un verbo HTTP non dichiarato è rifiutato (405) | [PersonResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFunctionLevelTest.java) |
 | **Object Level Authorization** (BOLA / IDOR) | `object-level` | non puoi accedere a un oggetto fuori dai tuoi permessi (fuori dal cono di visibilità); un oggetto inesistente non è distinguibile (anti-enumeration) | `DocResourceSicurezzaTest.testFindPersonKoForbidden` / `testFindPersonKoNotFound` |
-| **Mass Assignment** | `field-level` | campi server-managed non devono essere accettati dal client (over-posting) | [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java) |
-| **Field-Level Authorization** | `field-level` | un campo privilegiato è modificabile solo dal ruolo autorizzato | [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java) |
+| **Mass Assignment** | `field-level` | campi server-managed non devono essere accettati dal client (over-posting) | [PersonResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFieldLevelTest.java) |
+| **Field-Level Authorization** | `field-level` | un campo privilegiato è modificabile solo dal ruolo autorizzato | [PersonResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFieldLevelTest.java) |
 | **Data filtering per ruolo** (escalation orizzontale) | `authorized` + `security` | liste/documenti mostrano solo i dati consentiti al ruolo | `DocResourceSicurezzaTest.testListPersonsResultKo` / `testOkMarkDownConVerificaContenutoUser` |
 | **Ownership-based access** (dati personali) | `ownership` | un dato è accessibile solo all'owner (e a un admin); modificabile solo dall'owner | [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java) |
 | **Isolamento multi-tenant per ufficio** | `tenant` | accesso definito da owner/ufficio; un admin di un altro ufficio non accede; ciclo di vita draft/published; sharing | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
@@ -87,7 +87,7 @@ void testEditPersonUserCannotChangeMinRole() {
     given()                                                            // when
         .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateUserToken())
         .body("{... \"minRole\": \"admin\"}").contentType(JSON)
-    .when().put("/doc/person/edit/%s".formatted(uuid))
+    .when().put("/person/edit/%s".formatted(uuid))
     .then().statusCode(403);                                           // then: status
 }
 ```
@@ -106,11 +106,11 @@ Gli scenari nei quali definire gli unit test dipendono dalla logica di business 
 
 | Caso d'uso | Classe OWASP A01 | Test da scrivere | Esempio nel repo |
 |--------------------------|------------------|---------------------------------|------------------|
-| Endpoint senza controllo di accesso / "missing authorization" | Function-level | ruolo insufficiente sull'azione → 403 | `DocResourceFunctionLevelTest.testAddPersonUserKo` |
-| HTTP verb tampering / method override | Function-level | verbo non dichiarato → 405 | `DocResourceFunctionLevelTest.testVerbTamperingPutOnAddNotAllowed` |
+| Endpoint senza controllo di accesso / "missing authorization" | Function-level | ruolo insufficiente sull'azione → 403 | `PersonResourceFunctionLevelTest.testAddPersonUserKo` |
+| HTTP verb tampering / method override | Function-level | verbo non dichiarato → 405 | `PersonResourceFunctionLevelTest.testVerbTamperingPutOnAddNotAllowed` |
 | IDOR / "object reference not authorized" | BOLA / object-level | oggetto non consentito → 403; oggetto inesistente → 403 (anti-enumeration) | `DocResourceSicurezzaTest.testFindPersonKoForbidden` / `testFindPersonKoNotFound` |
-| Mass assignment / over-posting | Field-level | campi server-controlled inviati dal client vengono ignorati | `DocResourceFieldLevelTest.testAddPersonIgnoresServerControlledFields` |
-| Privilege escalation via parametro/campo | Field-level | ruolo basso non può valorizzare un campo privilegiato → 403 | `DocResourceFieldLevelTest.testEditPersonUserCannotChangeMinRole` |
+| Mass assignment / over-posting | Field-level | campi server-controlled inviati dal client vengono ignorati | `PersonResourceFieldLevelTest.testAddPersonIgnoresServerControlledFields` |
+| Privilege escalation via parametro/campo | Field-level | ruolo basso non può valorizzare un campo privilegiato → 403 | `PersonResourceFieldLevelTest.testEditPersonUserCannotChangeMinRole` |
 | Escalation verticale su azione (delete/create) | Function-level | ruolo basso non può eseguire l'azione admin → 403 | `DocResourceSicurezzaTest.testDeletePersonUserKo` |
 | Esposizione dati per ruolo / escalation orizzontale | Data filtering | la lista/documento è filtrata per ruolo | `DocResourceSicurezzaTest.testListPersonsResultKo` |
 | IDOR su risorsa di proprietà / "broken object ownership" | Ownership | solo owner/admin accede al proprio dato; modifica solo owner | `PersonalNoteResourceTest.testOtherUserCannotReadNote` / `testNonOwnerAdminCannotEditNote` |
@@ -133,12 +133,12 @@ Esito atteso per **endpoint × ruolo** (✅ = test presente). Le celle senza tes
 | `GET /doc/example.html` | 200 | 200 ✅ | 403 | 401 |
 | `GET /doc/example.adoc` | 200 ✅ | 403 | 403 ✅ | 401 |
 | `GET /doc/example.pdf` | 200 ✅ | 403 ✅ | 403 ✅ | 401 ✅ |
-| `GET /doc/person/list` | 200 (tutti) ✅ | 200 (filtrato) ✅ | 403 | 401 |
-| `GET /doc/person/find/{uuid}` | 200 ✅ | 200 / 403 object ✅ | 403 | 401 |
-| `POST /doc/person/add` | 201 ✅ | 403 ✅ | 403 ✅ | 401 |
-| `PUT /doc/person/edit/{uuid}` | 200 (+minRole) ✅ | 200 anagrafica ✅ / 403 minRole ✅ | 403 object | 401 |
-| `DELETE /doc/person/delete/{uuid}` | 200 ✅ | 403 ✅ | 403 | 401 |
-| verbo non dichiarato (es. `PUT /doc/person/add`) | 405 ✅ | — | — | — |
+| `GET /person/list` | 200 (tutti) ✅ | 200 (filtrato) ✅ | 403 | 401 |
+| `GET /person/find/{uuid}` | 200 ✅ | 200 / 403 object ✅ | 403 | 401 |
+| `POST /person/add` | 201 ✅ | 403 ✅ | 403 ✅ | 401 |
+| `PUT /person/edit/{uuid}` | 200 (+minRole) ✅ | 200 anagrafica ✅ / 403 minRole ✅ | 403 object | 401 |
+| `DELETE /person/delete/{uuid}` | 200 ✅ | 403 ✅ | 403 | 401 |
+| verbo non dichiarato (es. `PUT /person/add`) | 405 ✅ | — | — | — |
 
 ## Catalogo pattern & anti-pattern
 
@@ -166,7 +166,7 @@ Esito atteso per **endpoint × ruolo** (✅ = test presente). Le celle senza tes
 4. Verifica con `mvn verify -P security`.
 
 ### Riferimenti complessi — esempi ed estensione
-1. Studia [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java) e [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java).
+1. Studia [PersonResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFunctionLevelTest.java) e [PersonResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFieldLevelTest.java).
 2. Completa la [matrice di copertura](#matrice-di-copertura) per le celle senza test (es. `guest` su `list`/`find`).
 3. **Affronta le nuance architetturali.** Sono i dettagli sottili che separano un controllo "che sembra giusto" da uno corretto:
    - **Il modello dei ruoli è *set-membership*, non gerarchia.** L'autorizzazione object-level confronta `securityIdentity.getRoles().contains(person.getMinRole())`: l'oggetto dichiara *un* ruolo richiesto (`minRole`) e l'accesso passa solo se quel ruolo è **presente nell'insieme** dei ruoli dell'utente. Non c'è alcun "≥": avere `admin` non implica di per sé soddisfare un `minRole = user`. In pratica funziona solo perché i token sono coniati in modo **cumulativo** (`generateAdminToken` → `{admin, user, guest}`); un token con il solo `admin` *non* vedrebbe un oggetto con `minRole = user`. Dove serve davvero una gerarchia ordinata (`guest < user < admin`) la si modella esplicitamente con `RoleHierarchy`, come nello scenario multi-tenant — non la si dà per scontata.
