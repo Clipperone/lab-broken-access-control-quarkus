@@ -192,7 +192,7 @@ class DocResourceSicurezzaTest {
                 .when().get("/doc/example.pdf").then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
-    // test sul path /doc/person/* (interroga / inserisci / cancella persone)
+    // test sul path /person/* (interroga / inserisci / cancella persone)
 
     @Test
     @DisplayName("(200) trova persona con ruolo autorizzato, ruolo utente 'admin', 'user' e 'guest'.")
@@ -202,7 +202,7 @@ class DocResourceSicurezzaTest {
     @TestSecurity(user = "USER2", roles = { "guest", "user", "admin" })
     void testFindPersonOkAdmin() {
         String responseBody = given()
-                .when().get("/doc/person/find/%s".formatted(ID_RICHARD_FEYMAN)).then()
+                .when().get("/person/find/%s".formatted(ID_RICHARD_FEYMAN)).then()
                 .statusCode(Response.Status.OK.getStatusCode()).extract().body().asString();
         Assertions.assertTrue(responseBody.contains("Feynman"));
         log.info("testFindPersonOkAdmin : {}", responseBody);
@@ -216,7 +216,7 @@ class DocResourceSicurezzaTest {
     @TestSecurity(user = "USER1", roles = { "guest", "user" })
     void testFindPersonOkUser() {
         String responseBody = given()
-                .when().get("/doc/person/find/%s".formatted(ID_MARGHERITA_HACK)).then()
+                .when().get("/person/find/%s".formatted(ID_MARGHERITA_HACK)).then()
                 .statusCode(Response.Status.OK.getStatusCode()).extract().body().asString();
         Assertions.assertTrue(responseBody.contains("Hack"));
         log.info("responseBody : {}", responseBody);
@@ -231,7 +231,7 @@ class DocResourceSicurezzaTest {
     @TestSecurity(user = "USER1", roles = { "guest", "user" })
     void testFindPersonKoForbidden() {
         given()
-                .when().get("/doc/person/find/10002").then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
+                .when().get("/person/find/10002").then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
     // VULNERABILITY: (1) risolvi questa vulnerabilità in modo che il caso di test funzioni.
@@ -243,7 +243,7 @@ class DocResourceSicurezzaTest {
     @TestSecurity(user = "USER1", roles = { "guest", "user" })
     void testFindPersonKoNotFound() {
         given()
-                .when().get("/doc/person/find/%s".formatted(ID_NON_ESISTE)).then()
+                .when().get("/person/find/%s".formatted(ID_NON_ESISTE)).then()
                 .statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
@@ -255,7 +255,7 @@ class DocResourceSicurezzaTest {
     @TestSecurity(user = "USER1", roles = { "guest", "user" })
     void testListPersonsResultKo() {
         String responseBody = given()
-                .when().get("/doc/person/list").then().statusCode(Response.Status.OK.getStatusCode()).extract().asString();
+                .when().get("/person/list").then().statusCode(Response.Status.OK.getStatusCode()).extract().asString();
         log.info("responseBody testListPersonsResultKo : {}", responseBody);
         Assertions.assertFalse(responseBody.contains("Feynman"));
     }
@@ -267,7 +267,7 @@ class DocResourceSicurezzaTest {
     @TestSecurity(user = "USER2", roles = { "admin", "user" })
     void testListPersonsResultOk() {
         String responseBody = given()
-                .when().get("/doc/person/list").then().statusCode(Response.Status.OK.getStatusCode()).extract().asString();
+                .when().get("/person/list").then().statusCode(Response.Status.OK.getStatusCode()).extract().asString();
         log.info("responseBody testListPersonsResultOk : {}", responseBody);
         Assertions.assertTrue(responseBody.contains("Feynman"));
     }
@@ -282,7 +282,7 @@ class DocResourceSicurezzaTest {
         given()
                 .when()
                 .body(addMarieCurie).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .post("/doc/person/add")
+                .post("/person/add")
                 .then()
                 .statusCode(Response.Status.CREATED.getStatusCode());
     }
@@ -298,7 +298,7 @@ class DocResourceSicurezzaTest {
         String uuid = given()
                 .when()
                 .body(addPierreCurie).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .post("/doc/person/add")
+                .post("/person/add")
                 .then()
                 .statusCode(Response.Status.CREATED.getStatusCode())
                 .extract()
@@ -306,7 +306,7 @@ class DocResourceSicurezzaTest {
         log.info("testAddDeletePersonAdminOk added pierre curie uuid : {}", uuid);
         given()
                 .when()
-                .delete("/doc/person/delete/%s".formatted(uuid))
+                .delete("/person/delete/%s".formatted(uuid))
                 .then()
                 .statusCode(Response.Status.OK.getStatusCode());
     }
@@ -319,7 +319,7 @@ class DocResourceSicurezzaTest {
     void testDeletePersonAdminKoNonEsiste() {
         given()
                 .when()
-                .delete("/doc/person/delete/%s".formatted(ID_NON_ESISTE))
+                .delete("/person/delete/%s".formatted(ID_NON_ESISTE))
                 .then()
                 .statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
@@ -333,7 +333,7 @@ class DocResourceSicurezzaTest {
     void testDeletePersonUserKo() {
         given()
                 .when()
-                .delete("/doc/person/delete/%s".formatted(ID_ALAN_TURING))
+                .delete("/person/delete/%s".formatted(ID_ALAN_TURING))
                 .then()
                 .statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
