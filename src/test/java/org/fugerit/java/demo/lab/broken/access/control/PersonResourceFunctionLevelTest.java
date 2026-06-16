@@ -35,7 +35,7 @@ import static io.restassured.RestAssured.given;
  */
 @QuarkusTest
 @Slf4j
-class DocResourceFunctionLevelTest {
+class PersonResourceFunctionLevelTest {
 
     private static final String VALID_PERSON_JSON = "{\"firstName\": \"ADA\",\"lastName\": \"LOVELACE\",\"title\": \"Matematica\",\"minRole\": \"guest\"}";
 
