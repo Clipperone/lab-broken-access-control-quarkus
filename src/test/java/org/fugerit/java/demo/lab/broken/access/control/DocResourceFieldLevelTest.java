@@ -39,7 +39,7 @@ class DocResourceFieldLevelTest {
         return given()
                 .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateAdminToken())
                 .body(json).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().post("/doc/person/add")
+                .when().post("/person/add")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
                 .extract().path("uuid");
     }
@@ -58,7 +58,7 @@ class DocResourceFieldLevelTest {
         String returnedUuid = given()
                 .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateAdminToken())
                 .body(maliciousBody).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().post("/doc/person/add")
+                .when().post("/person/add")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
                 .extract().path("uuid");
         log.info("testAddPersonIgnoresServerControlledFields returnedUuid : {}", returnedUuid);
@@ -82,7 +82,7 @@ class DocResourceFieldLevelTest {
                 .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateUserToken())
                 .body("{\"firstName\": \"ROSALIND\",\"lastName\": \"FRANKLIN\",\"title\": \"Chimica\",\"minRole\": \"admin\"}")
                 .contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().put("/doc/person/edit/%s".formatted(uuid))
+                .when().put("/person/edit/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
@@ -99,7 +99,7 @@ class DocResourceFieldLevelTest {
                 .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateUserToken())
                 .body("{\"firstName\": \"ROSALIND ELSIE\",\"lastName\": \"FRANKLIN\",\"title\": \"Biofisica\"}")
                 .contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().put("/doc/person/edit/%s".formatted(uuid))
+                .when().put("/person/edit/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode())
                 .body("title", org.hamcrest.Matchers.equalTo("Biofisica"))
                 .extract().path("minRole");
@@ -119,7 +119,7 @@ class DocResourceFieldLevelTest {
                 .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateAdminToken())
                 .body("{\"firstName\": \"ROSALIND\",\"lastName\": \"FRANKLIN\",\"title\": \"Chimica\",\"minRole\": \"admin\"}")
                 .contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().put("/doc/person/edit/%s".formatted(uuid))
+                .when().put("/person/edit/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode())
                 .body("minRole", org.hamcrest.Matchers.equalTo("admin"));
     }

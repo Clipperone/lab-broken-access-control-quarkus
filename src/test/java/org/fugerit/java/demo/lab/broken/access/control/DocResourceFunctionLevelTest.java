@@ -56,14 +56,14 @@ class DocResourceFunctionLevelTest {
         given()
                 .header("Authorization", "Bearer " + token)
                 .body(VALID_PERSON_JSON).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().post("/doc/person/add")
+                .when().post("/person/add")
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
     // --- Verb tampering: un metodo HTTP non dichiarato non deve essere invocabile (chiude la classe della vuln BONUS X) ---
 
     @Test
-    @DisplayName("(405) verb tampering: PUT su /doc/person/add (dichiara solo POST) → Method Not Allowed")
+    @DisplayName("(405) verb tampering: PUT su /person/add (dichiara solo POST) → Method Not Allowed")
     @Tag("security")
     @Tag("function-level")
     @TestSecurity(user = "USER2", roles = { "admin", "user", "guest" })
@@ -71,18 +71,18 @@ class DocResourceFunctionLevelTest {
         // autenticati come admin: l'UNICA ragione di rifiuto deve essere il verbo non dichiarato, non l'autorizzazione
         given()
                 .body(VALID_PERSON_JSON).contentType(ContentType.JSON)
-                .when().put("/doc/person/add")
+                .when().put("/person/add")
                 .then().statusCode(Response.Status.METHOD_NOT_ALLOWED.getStatusCode());
     }
 
     @Test
-    @DisplayName("(405) verb tampering: DELETE su /doc/person/list (dichiara solo GET) → Method Not Allowed")
+    @DisplayName("(405) verb tampering: DELETE su /person/list (dichiara solo GET) → Method Not Allowed")
     @Tag("security")
     @Tag("function-level")
     @TestSecurity(user = "USER2", roles = { "admin", "user", "guest" })
     void testVerbTamperingDeleteOnListNotAllowed() {
         given()
-                .when().delete("/doc/person/list")
+                .when().delete("/person/list")
                 .then().statusCode(Response.Status.METHOD_NOT_ALLOWED.getStatusCode());
     }
 

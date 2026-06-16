@@ -94,11 +94,11 @@ function bind() {
         firstName: val('p-fn'), lastName: val('p-ln'), title: val('p-title'),
         minRole: val('p-minrole') || undefined,
     });
-    $('btn-p-list').onclick = () => call('GET', '/doc/person/list');
-    $('btn-p-find').onclick = () => call('GET', '/doc/person/find/' + enc(val('p-uuid')));
-    $('btn-p-add').onclick = async () => maybeUuid(await call('POST', '/doc/person/add', personBody()), 'p-uuid');
-    $('btn-p-edit').onclick = () => call('PUT', '/doc/person/edit/' + enc(val('p-uuid')), personBody());
-    $('btn-p-del').onclick = () => call('DELETE', '/doc/person/delete/' + enc(val('p-uuid')));
+    $('btn-p-list').onclick = () => call('GET', '/person/list');
+    $('btn-p-find').onclick = () => call('GET', '/person/find/' + enc(val('p-uuid')));
+    $('btn-p-add').onclick = async () => maybeUuid(await call('POST', '/person/add', personBody()), 'p-uuid');
+    $('btn-p-edit').onclick = () => call('PUT', '/person/edit/' + enc(val('p-uuid')), personBody());
+    $('btn-p-del').onclick = () => call('DELETE', '/person/delete/' + enc(val('p-uuid')));
 
     // note
     const noteBody = () => ({ title: val('n-title'), content: val('n-content') });
