@@ -274,18 +274,38 @@ Cerca la vulnerabilità (X) che non è coperta dai test. Suggerimenti:
 
 ## Vulnerabilità dimostrative
 
-Questo laboratorio include 6 vulnerabilità di tipo Broken Access Control:
+Questo laboratorio include **15 vulnerabilità** di tipo Broken Access Control, distribuite su 4 scenari:
 
-| #   | Vulnerabilità                 | Classificazione | Endpoint                                                   | Status   |
-|-----|-------------------------------|-----------------|------------------------------------------------------------|----------|
-| (1) | ID Enumeration                | IDOR            | `/person/find/{id}`                                        | 🟢 Fixed |
-| (2) | Privilege Escalation (Data)   | BOLA            | `/doc/example.md`, `/doc/example.html`, `/doc/person/list` | 🟢 Fixed |
-| (3) | Privilege Escalation (Action) | BOLA            | `/doc/person/delete/{id}`                                  | 🟢 Fixed |
-| (4) | Broken Object Authorization   | BOLA            | `/doc/person/find/{id}`                                    | 🟢 Fixed |
-| (5) | Missing Authentication        | Access Control  | `/doc/example.md`                                          | 🟢 Fixed |
-| (X) | Hidden Vulnerability (BONUS)  | Access Control  | `/person/add` (PUT)                                        | 🟢 Fixed |
+| #   | Scenario / Vulnerabilità              | Classificazione   | Endpoint                                              | Status   |
+|-----|---------------------------------------|-------------------|-------------------------------------------------------|----------|
+| **DocResource** — Autorizzazione function/field-level + IDOR + anti-enumeration |
+| (1) | IDOR: ID Enumeration                 | IDOR              | `GET /doc/person/find/{uuid}`                         | 🟢 Fixed |
+| (2) | Privilege Escalation (Data filtering)| BOLA              | `GET /doc/example.md`, `/doc/example.html`, `/doc/person/list` | 🟢 Fixed |
+| (3) | Privilege Escalation (Delete action) | BOLA              | `DELETE /doc/person/delete/{uuid}`                    | 🟢 Fixed |
+| (4) | Broken Object Level Authorization    | BOLA              | `GET /doc/person/find/{uuid}`                         | 🟢 Fixed |
+| (5) | Missing Authentication               | Access Control    | `GET /doc/example.md`                                 | 🟢 Fixed |
+| (6) | Field-Level Authorization + Mass Assignment | Field-level | `PUT /doc/person/edit/{uuid}`                         | 🟢 Fixed |
+| (X) | Verb Tampering (Hidden, no test)     | Function-level    | `PUT /doc/person/add`                                 | 🟢 Fixed |
+| **PersonalNoteResource** — Ownership-based access + anti-enumeration |
+| (7a) | Ownership read: accesso non ristretto | Ownership       | `GET /doc/note/{uuid}`                                | 🟢 Fixed |
+| (7b) | Ownership write: solo owner           | Ownership         | `PUT /doc/note/{uuid}`                                | 🟢 Fixed |
+| (7c) | Anti-enumeration: IDOR               | IDOR              | `GET /doc/note/{uuid}` (non esiste)                   | 🟢 Fixed |
+| **OfficeDocumentResource** — Multi-tenant per ufficio + gerarchia ruoli + draft/published + anti-enumeration |
+| (8a) | State visibility: Draft visibility    | Access Control    | `GET /doc/officedoc/list`, `GET /doc/officedoc/{uuid}` | 🟢 Fixed |
+| (8b) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/officedoc/{uuid}` (ufficio diverso)         | 🟢 Fixed |
+| (8c) | Role hierarchy: Missing role check    | BOLA              | `GET /doc/officedoc/{uuid}` (ruolo < owner minRole)   | 🟢 Fixed |
+| (8d) | Privilege escalation: Non-owner edit  | BOLA              | `PUT /doc/officedoc/{uuid}` (non owner/non admin)     | 🟢 Fixed |
+| (8e) | Mass Assignment: Server-managed fields | Field-level     | `POST /doc/officedoc` (client sets owner/office/role) | 🟢 Fixed |
+| (8f) | Anti-enumeration: IDOR               | IDOR              | `GET /doc/officedoc/{uuid}` (non esiste)              | 🟢 Fixed |
+| **AppointmentResource** — Multi-part visibility + temporal authorization + ownership + anti-enumeration |
+| (9a) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/appointment/{uuid}` (ufficio diverso)       | 🟢 Fixed |
+| (9b) | Over-broad visibility (same office)   | BOLA              | `GET /doc/appointment/{uuid}` (non correlato)         | 🟢 Fixed |
+| (9c) | Temporal authorization: Delete window | Temporal          | `DELETE /doc/appointment/{uuid}` (< 24h)              | 🟢 Fixed |
+| (9d) | Ownership: Non-owner delete/move      | Ownership         | `DELETE /doc/appointment/{uuid}`, `PUT .../move`      | 🟢 Fixed |
+| (9e) | Mass Assignment: creatorUpn server-managed | Field-level   | `POST /doc/appointment` (client sets creatorUpn)      | 🟢 Fixed |
+| (9f) | Anti-enumeration: IDOR               | IDOR              | `GET /doc/appointment/{uuid}` (non esiste)            | 🟢 Fixed |
 
-> 💡 **Sfida**: La vulnerabilità (X) non è coperta dai test. Riesci a trovarla?
+> 💡 **Sfida**: Le vulnerabilità (X), (8f), (9f) applicano l'anti-enumeration (IDOR uniforme). (9c) introduce l'**autorizzazione temporale**.
 
 ### Descrizione delle vulnerabilità
 
@@ -293,12 +313,12 @@ Questo laboratorio include 6 vulnerabilità di tipo Broken Access Control:
 
 È possibile individuare gli identificativi delle persone esistenti distinguendo tra risposte 404 (non esiste) e 403 (non autorizzato).
 
-**Endpoint**: `/person/find/{id}`
+**Endpoint**: `GET /doc/person/find/{uuid}`
 
-**Problema**: Risposta diversa per ID esistenti vs non esistenti
+**Problema**: Risposta diversa per UUID esistenti vs non esistenti
 ```
-GET /person/999  → 404 Not Found (non esiste)
-GET /person/10002 → 403 Forbidden (esiste ma non autorizzato)
+GET /doc/person/999  → 404 Not Found (non esiste)
+GET /doc/person/valid-uuid → 403 Forbidden (esiste ma non autorizzato)
 ```
 
 **Soluzione**: Risposta uniforme (sempre 403) per evitare enumerazione
@@ -307,7 +327,7 @@ GET /person/10002 → 403 Forbidden (esiste ma non autorizzato)
 
 L'utente riesce a vedere dati che dovrebbero essere disponibili solo per il profilo 'admin'.
 
-**Endpoint**: `/doc/example.md`, `/doc/example.html`, `/doc/person/list`
+**Endpoint**: `GET /doc/example.md`, `GET /doc/example.html`, `GET /doc/person/list`
 
 **Problema**: Utenti con ruolo 'user' vedono Richard Feynman (minRole=admin)
 
@@ -317,7 +337,7 @@ L'utente riesce a vedere dati che dovrebbero essere disponibili solo per il prof
 
 L'utente riesce a cancellare una persona anche se non ha il ruolo 'admin'.
 
-**Endpoint**: `/doc/person/delete/{id}`
+**Endpoint**: `DELETE /doc/person/delete/{uuid}`
 
 **Problema**: `@RolesAllowed` include erroneamente "user"
 
@@ -327,7 +347,7 @@ L'utente riesce a cancellare una persona anche se non ha il ruolo 'admin'.
 
 L'utente riesce a vedere dati che non dovrebbero essere disponibili per il suo profilo.
 
-**Endpoint**: `/doc/person/find/{id}`
+**Endpoint**: `GET /doc/person/find/{uuid}`
 
 **Problema**: Verifica del ruolo minimo mancante
 
@@ -337,70 +357,234 @@ L'utente riesce a vedere dati che non dovrebbero essere disponibili per il suo p
 
 L'utente riesce ad accedere al documento anche se non è autenticato.
 
-**Endpoint**: `/doc/example.md`
+**Endpoint**: `GET /doc/example.md`
 
 **Problema**: `@RolesAllowed` annotation mancante
 
 **Soluzione**: Aggiungere `@RolesAllowed({ "admin", "user", "guest" })`
 
-#### (x) Hidden Vulnerability (BONUS)
+#### (6) Field-Level Authorization + Mass Assignment
 
-una put senza controllo di autorizzazione è rimasta abilitata per errore.
+Un utente non-admin riesce a modificare il campo privilegiato `minRole` di una persona.
 
-**Endpoint**: `/person/add` (PUT)
+**Endpoint**: `PUT /doc/person/edit/{uuid}`
 
-**Problema**: Il metodo è utilizzabile senza autenticazione
+**Problema**: Il campo `minRole` è accettato dal DTO e applicato senza controllo di ruolo; il client può inviare qualsiasi valore
 
-**Soluzione**: rimuoviamo totalmente il metodo addPersonPut()
+**Soluzione**: 
+- Verificare il ruolo prima di applicare `minRole`: solo 'admin' può modificarlo
+- Alternativa (design): esporre un DTO request diverso per ruoli non-admin, senza il campo `minRole` bindabile
+
+#### (7a) Ownership Read: Accesso non ristretto
+
+Un utente non-owner riesce a leggere una nota che non gli appartiene (senza essere admin).
+
+**Endpoint**: `GET /doc/note/{uuid}`
+
+**Problema**: Verifica di ownership/admin mancante
+
+**Soluzione**: Controllare che l'utente sia owner o admin prima di restituire la nota
+
+#### (7b) Ownership Write: Modificazione non ristretta
+
+Un admin riesce a modificare una nota altrui (gli ownership garantisce lettura, ma **non** modifica).
+
+**Endpoint**: `PUT /doc/note/{uuid}`
+
+**Problema**: Verifica di ownership mancante (manca il vincolo "solo owner")
+
+**Soluzione**: Controllare che l'utente sia il solo owner (admin può leggere, ma non modificare)
+
+#### (7c) Anti-Enumeration: IDOR su Note
+
+Una nota inesistente restituisce 404 invece di 403, rendendo le note enumerabili.
+
+**Endpoint**: `GET /doc/note/{uuid}` (non esiste)
+
+**Problema**: Risposta diversa per nota inesistente vs non autorizzata
+
+**Soluzione**: Risposta uniforme (sempre 403) per evitare enumerazione
+
+#### (8a) State Visibility: Visibilità della bozza
+
+Un utente dell'ufficio legge una bozza (DRAFT) di un altro, anche se non ne è owner.
+
+**Endpoint**: `GET /doc/officedoc/{uuid}` (DRAFT), `GET /doc/officedoc/list`
+
+**Problema**: Manca il controllo che DRAFT sia visibile solo all'owner
+
+**Soluzione**: Aggiungere vincolo `status == DRAFT && owner == self` oppure `status == PUBLISHED`
+
+#### (8b) Tenant Isolation: Cross-office Access
+
+Un admin di un ufficio diverso accede ai documenti di un altro ufficio (anche se admin).
+
+**Endpoint**: `GET /doc/officedoc/{uuid}` (ufficio CHIMICA), chiamante da FISICA/admin
+
+**Problema**: Manca il controllo dell'isolamento per ufficio
+
+**Soluzione**: Verificare `Objects.equals(currentOffice(), document.getOwnerOffice())`; un admin di FISICA **non** vede documenti di CHIMICA
+
+#### (8c) Role Hierarchy: Mancato controllo di gerarchia
+
+Un utente con ruolo inferiore al `minRole` dell'owner accede al documento PUBLISHED.
+
+**Endpoint**: `GET /doc/officedoc/{uuid}` (PUBLISHED con minRole=admin), chiamante user
+
+**Problema**: Manca il controllo di gerarchia (ruolo ≥ owner minRole)
+
+**Soluzione**: Verificare `RoleHierarchy.isAtLeast(securityIdentity.getRoles(), document.getOwnerRole())`
+
+#### (8d) Privilege Escalation: Non-owner Edit
+
+Un utente non-owner (né admin dello stesso ufficio) riesce a modificare il documento.
+
+**Endpoint**: `PUT /doc/officedoc/{uuid}`
+
+**Problema**: Manca il controllo che solo owner o admin dello stesso ufficio modifichino
+
+**Soluzione**: Verificare ownership o (admin && stessoUfficio)
+
+#### (8e) Mass Assignment: Server-managed Fields
+
+Il client riesce a impostare `ownerUpn`, `ownerOffice`, `ownerRole`, `status` nel body della POST.
+
+**Endpoint**: `POST /doc/officedoc`
+
+**Problema**: I campi server-managed sono esposti nel DTO request e bindati dal framework
+
+**Soluzione**: Impostare owner/ufficio/ruolo/stato lato server dalle credenziali del token, ignorare il body
+
+#### (8f) Anti-Enumeration: IDOR su OfficeDocument
+
+Un documento inesistente restituisce 404 invece di 403.
+
+**Endpoint**: `GET /doc/officedoc/{uuid}` (non esiste)
+
+**Problema**: Risposta diversa per documento inesistente vs non autorizzato
+
+**Soluzione**: Risposta uniforme (sempre 403) per evitare enumerazione
+
+#### (9a) Tenant Isolation: Cross-office Visibility
+
+Un admin di un ufficio diverso vede l'appuntamento di un altro ufficio.
+
+**Endpoint**: `GET /doc/appointment/{uuid}` (ufficio CHIMICA), chiamante da FISICA/admin
+
+**Problema**: Manca il vincolo di isolamento per ufficio
+
+**Soluzione**: Verificare `Objects.equals(creatorOffice, currentOffice())` o `Objects.equals(scientistOffice, currentOffice())`
+
+#### (9b) Over-broad Visibility: Stesso ufficio, non correlato
+
+Un utente dello stesso ufficio, non creatore e non destinatario, vede l'appuntamento.
+
+**Endpoint**: `GET /doc/appointment/{uuid}` (creato da A, destinato a B), viewer è C dello stesso ufficio
+
+**Problema**: Visibilità concessa a "chiunque dello stesso ufficio" invece di solo relazioni (creatore, destinatario, admin)
+
+**Soluzione**: Restringere a `creatorUpn == self OR scientistUpn == self OR (admin && stessoUfficio)`
+
+#### (9c) Temporal Authorization: Finestra di eliminazione
+
+Il creatore riesce a cancellare un appuntamento entro le 24h prima (quando dovrebbe essere vietato).
+
+**Endpoint**: `DELETE /doc/appointment/{uuid}` (cancellazione entro 24h)
+
+**Problema**: Manca il controllo che la cancellazione sia consentita solo se mancano > 24h
+
+**Soluzione**: Verificare `ChronoUnit.HOURS.between(now, appointmentTime) > 24` prima di consentire DELETE
+
+#### (9d) Ownership: Non-owner Delete/Move
+
+Un non-creatore (anche il destinatario) riesce a cancellare o spostare l'appuntamento.
+
+**Endpoint**: `DELETE /doc/appointment/{uuid}`, `PUT /doc/appointment/{uuid}/move`
+
+**Problema**: Manca il controllo che solo il creatore possa eliminare/spostare
+
+**Soluzione**: Verificare `creatorUpn == currentUser()` prima di consentire DELETE e MOVE
+
+#### (9e) Mass Assignment: creatorUpn Server-managed
+
+Il client riesce a impostare `creatorUpn` nel body della POST.
+
+**Endpoint**: `POST /doc/appointment`
+
+**Problema**: `creatorUpn` è server-managed ma presente nel DTO request
+
+**Soluzione**: Impostare `creatorUpn` lato server dal token, ignorare il body
+
+#### (9f) Anti-Enumeration: IDOR su Appointment
+
+Un appuntamento inesistente restituisce 404 invece di 403.
+
+**Endpoint**: `GET /doc/appointment/{uuid}` (non esiste)
+
+**Problema**: Risposta diversa per appuntamento inesistente vs non autorizzato
+
+**Soluzione**: Risposta uniforme (sempre 403) per evitare enumerazione
+
+#### (X) Verb Tampering (Hidden, non coperto da test)
+
+Una PUT senza controllo di autorizzazione è rimasta abilitata per errore.
+
+**Endpoint**: `PUT /doc/person/add`
+
+**Problema**: Il metodo `addPersonPut()` è utilizzabile senza autenticazione (metodo HTTP non dichiarato)
+
+**Soluzione**: Rimuovere totalmente il metodo `addPersonPut()` o applicare `@RolesAllowed`
 
 ```java
-    @APIResponse(responseCode = "201", description = "La persona è stata creata", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = AddPersonResponseDTO.class)))
-    @APIResponse(responseCode = "401", description = "Se l'autenticazione non è presente")
-    @APIResponse(responseCode = "403", description = "Se l'utente non è autorizzato per la risorsa")
-    @APIResponse(responseCode = "500", description = "In caso di errori non gestiti")
-    @Tag(name = "person")
-    @Operation(operationId = "addPersonPut", summary = "Aggiunge una persona al database (ruoli: admin)", description = "Vanno forniti i parametri, nome, cognome, titolo e ruolo minimo.")
-    @PUT
-    @Path("/person/add")
-    @Transactional
-    public Response addPersonPut(AddPersonRequestDTO request) {
-        return this.addPerson(request);
-    }
+@PUT
+@Path("/person/add")
+@Transactional
+public Response addPersonPut(AddPersonRequestDTO request) {
+    return this.addPerson(request);
+}
 ```
 
 ---
 
-Le vulnerabilità da risolvere saranno presenti a partire dal servizio REST:
+### Struttura del laboratorio
 
-- [DocResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/DocResource.java)
+Le **15 vulnerabilità** sono distribuite su 4 risorse REST, ognuna con test di sicurezza associati:
 
-Visto che questo progetto segue l'approccio del *Test-driven development* abbiamo scritto prima i test della nostra applicazione, ovvero:
+| Risorsa REST | Vulnerabilità | Test |
+|---|---|---|
+| [DocResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/DocResource.java) | (1)–(6), (X) | [DocResourceSicurezzaTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceSicurezzaTest.java), [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java), [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java) |
+| [PersonalNoteResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResource.java) | (7a)–(7c) | [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java) |
+| [OfficeDocumentResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResource.java) | (8a)–(8f) | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
+| [AppointmentResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResource.java) | (9a)–(9f) | [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java) |
 
-- [DocResourceSicurezzaTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceSicurezzaTest.java) - Test di sicurezza, in particolare gli accessi non autorizzati
+### Approccio Test-Driven Development
+
+Questo progetto segue il *Test-driven development*: i test sono scritti prima del codice e definiscono il comportamento atteso.
 
 I casi di test dove sono presenti vulnerabilità falliranno, per quelli sarà presente il commento:
 ```java
 // VULNERABILITY: (n) risolvi questa vulnerabilità in modo che il caso di test funzioni.
 ```
 
-Una volta pubblicate le soluzioni, le potrai trovare cercando il commento:
+Una volta risolte le vulnerabilità, le soluzioni si trovano cercando il commento:
 ```java
 // SOLUTION: (n) 
 ```
 
-Dove (n) è l'id del comportamento vulnerabile introdotto, ad esempio (1).
+Dove (n) è l'id della vulnerabilità introdotta, ad esempio (1) o (9c).
 
-In totale saranno presenti 5 vulnerabilità. Ognuna farà fallire uno dei casi di test. Solo la numero (2) farà fallire 2 casi di test.
+### Esecuzione e verifica
 
-> **BONUS**: C'è un path che contiene una vulnerabilità non censita negli unit test, nella soluzione sarà censita come SOLUTION: (X)
+**Prima della risoluzione** (su `branch-vulnerable`), eseguendo `mvn verify -P security` vedrai **26 test rossi** (uno per ogni vulnerabilità, con alcuni scenari che coprono più weak):
 
-Da notare che prima della risoluzione, l'esecuzione della suite di test *DocResourceSicurezzaTest* porterà a questo risultato (6 casi di test falliti)
+- DocResource: 7 test falliti
+- PersonalNoteResource: 6 test falliti  
+- OfficeDocumentResource: 8 test falliti
+- AppointmentResource: 5 test falliti
 
 ![unit test falliti](./src/docs/image/junit-tofix.png)
 
-Mentre dopo aver applicato le patch il risultato dovrebbe essere un questo
-
-![unit test riusciti](./src/docs/image/junit-fixed.png)
+**Dopo aver risolto tutte le vulnerabilità** (su `main` o applicando le soluzioni), eseguendo `mvn verify -P security` tutti i test passeranno al verde ✅ (63 test, inclusi i 26 negativi di sicurezza).
 
 Buon lavoro!
 
