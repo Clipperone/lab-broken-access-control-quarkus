@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Refactoring**: estratta `PersonResource` da `DocResource`. Il CRUD persone ora vive in `/person/*` (breaking change: `POST /doc/person/add` → `POST /person/add`, ecc.). `DocResource` mantiene solo `/doc/example.{md,html,adoc,pdf}`. Test rinominati di conseguenza: `DocResourceFieldLevelTest` → `PersonResourceFieldLevelTest`, `DocResourceFunctionLevelTest` → `PersonResourceFunctionLevelTest`, `DocResourceSicurezzaTest` splittato in `DocResourceSicurezzaTest` (`/doc/example.*`) + `PersonResourceSicurezzaTest` (`/person/*`).
+
 ### Added
 
 - Scenario **Appuntamenti** (`/doc/appointment`, `Appointment`): visibilità multi-parte (creatore / scienziato destinatario / admin dello stesso ufficio), **eliminazione solo dal creatore e solo se mancano più di 24h** (autorizzazione temporale), spostamento solo dal creatore, anti-enumeration, creatore server-side. Test: `AppointmentResourceTest`; tag di gate `temporal`. Sezione "Appuntamenti" anche nella console GUI.

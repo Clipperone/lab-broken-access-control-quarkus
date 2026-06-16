@@ -34,7 +34,7 @@ Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A
 ### 🧪 Percorso 1 — Il laboratorio
 
 Parti da `branch-vulnerable`, fai fallire i test e correggi le vulnerabilità **(1)–(9f)** distribuite su
-`DocResource`, `PersonalNoteResource`, `OfficeDocumentResource` e `AppointmentResource`.
+`DocResource`, `PersonResource`, `PersonalNoteResource`, `OfficeDocumentResource` e `AppointmentResource`.
 È il percorso descritto in questo README: [Quickstart](#quickstart) → [Lo scenario](#lo-scenario) →
 [Workflow del laboratorio](#workflow-del-laboratorio) → [Vulnerabilità dimostrative](#vulnerabilità-dimostrative).
 
@@ -43,10 +43,10 @@ Parti da `branch-vulnerable`, fai fallire i test e correggi le vulnerabilità **
 Il progetto è anche un **riferimento per scrivere unit test di sicurezza sui controlli di
 autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Sono stati rappresentati vari scenari di riferimento:
 
-- **Function Level Access Control** (escalation verticale di ruolo) → [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java)
-- **Verb Tampering** (verbo HTTP non dichiarato rifiutato con 405) → [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java)
-- **Mass Assignment** (campi server-managed imposti dal client) → [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java)
-- **Field-Level Authorization** (campi privilegiati modificabili solo dal ruolo autorizzato) → [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java)
+- **Function Level Access Control** (escalation verticale di ruolo) → [PersonResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFunctionLevelTest.java)
+- **Verb Tampering** (verbo HTTP non dichiarato rifiutato con 405) → [PersonResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFunctionLevelTest.java)
+- **Mass Assignment** (campi server-managed imposti dal client) → [PersonResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFieldLevelTest.java)
+- **Field-Level Authorization** (campi privilegiati modificabili solo dal ruolo autorizzato) → [PersonResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFieldLevelTest.java)
 - **Ownership-based access** (dati personali: visibili a owner o admin) → endpoint `/doc/note`, [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java)
 - **Isolamento multi-tenant per ufficio** (admin di altro ufficio escluso; draft/published; sharing) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
 - **Gerarchia di ruoli** (accesso al documento solo se ruolo ≥ soglia dell'owner) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
@@ -209,11 +209,11 @@ L'applicazione gestisce 3 ruoli ed espone dei path che generare documenti in div
 | `/doc/example.adoc`           | 📄 AsciiDoc | admin              | GET         |
 | `/doc/example.html` (*)       | 🌐 HTML     | admin, user        | GET         |
 | `/doc/example.pdf`            | 📑 PDF      | admin              | GET         |
-| `/doc/person/list` (*)        | 📋 JSON     | admin, user        | GET         |
-| `/doc/person/find/{uuid}` (*) | 📋 JSON     | admin, user        | GET         |
-| `/doc/person/add`             | 📋 JSON     | admin              | POST        |
-| `/doc/person/edit/{uuid}`     | 📋 JSON     | admin, user (**)   | PUT         |
-| `/doc/person/delete/{uuid}`   | 📋 JSON     | admin              | DELETE      |
+| `/person/list` (*)        | 📋 JSON     | admin, user        | GET         |
+| `/person/find/{uuid}` (*) | 📋 JSON     | admin, user        | GET         |
+| `/person/add`             | 📋 JSON     | admin              | POST        |
+| `/person/edit/{uuid}`     | 📋 JSON     | admin, user (**)   | PUT         |
+| `/person/delete/{uuid}`   | 📋 JSON     | admin              | DELETE      |
 
 > (*) Eccetto gli utenti con ruolo 'admin', su questi path potrebbe esserci una limitazione ai dati mostrati in base al ruolo minimo richiesto.
 
@@ -240,7 +240,7 @@ mvn quarkus:dev
 
 ### Passo 2: Esplora le vulnerabilità
 
-- Apri `DocResource.java`
+- Apri le risorse REST (es. `DocResource.java`, `PersonResource.java`, `PersonalNoteResource.java`, `OfficeDocumentResource.java`, `AppointmentResource.java`)
 - Cerca i commenti `// VULNERABILITY: (n)`
 - Analizza il codice vulnerabile
 - Identifica il tipo di vulnerabilità (IDOR, BOLA, etc.)
@@ -278,26 +278,22 @@ Questo laboratorio include **15 vulnerabilità** di tipo Broken Access Control, 
 
 | #   | Scenario / Vulnerabilità              | Classificazione   | Endpoint                                              | Status   |
 |-----|---------------------------------------|-------------------|-------------------------------------------------------|----------|
-| **DocResource** — Autorizzazione function/field-level + IDOR + anti-enumeration |
-| (1) | IDOR: ID Enumeration                 | IDOR              | `GET /doc/person/find/{uuid}`                         | 🟢 Fixed |
-| (2) | Privilege Escalation (Data filtering)| BOLA              | `GET /doc/example.md`, `/doc/example.html`, `/doc/person/list` | 🟢 Fixed |
-| (3) | Privilege Escalation (Delete action) | BOLA              | `DELETE /doc/person/delete/{uuid}`                    | 🟢 Fixed |
-| (4) | Broken Object Level Authorization    | BOLA              | `GET /doc/person/find/{uuid}`                         | 🟢 Fixed |
+| (1) | IDOR: ID Enumeration                 | IDOR              | `GET /person/find/{uuid}`                         | 🟢 Fixed |
+| (2) | Privilege Escalation (Data filtering)| BOLA              | `GET /doc/example.md`, `/doc/example.html`, `/person/list` | 🟢 Fixed |
+| (3) | Privilege Escalation (Delete action) | BOLA              | `DELETE /person/delete/{uuid}`                    | 🟢 Fixed |
+| (4) | Broken Object Level Authorization    | BOLA              | `GET /person/find/{uuid}`                         | 🟢 Fixed |
 | (5) | Missing Authentication               | Access Control    | `GET /doc/example.md`                                 | 🟢 Fixed |
-| (6) | Field-Level Authorization + Mass Assignment | Field-level | `PUT /doc/person/edit/{uuid}`                         | 🟢 Fixed |
-| (X) | Verb Tampering (Hidden, no test)     | Function-level    | `PUT /doc/person/add`                                 | 🟢 Fixed |
-| **PersonalNoteResource** — Ownership-based access + anti-enumeration |
+| (6) | Field-Level Authorization + Mass Assignment | Field-level | `PUT /person/edit/{uuid}`                         | 🟢 Fixed |
+| (X) | Verb Tampering (Hidden, no test)     | Function-level    | `PUT /person/add`                                 | 🟢 Fixed |
 | (7a) | Ownership read: accesso non ristretto | Ownership       | `GET /doc/note/{uuid}`                                | 🟢 Fixed |
 | (7b) | Ownership write: solo owner           | Ownership         | `PUT /doc/note/{uuid}`                                | 🟢 Fixed |
 | (7c) | Anti-enumeration: IDOR               | IDOR              | `GET /doc/note/{uuid}` (non esiste)                   | 🟢 Fixed |
-| **OfficeDocumentResource** — Multi-tenant per ufficio + gerarchia ruoli + draft/published + anti-enumeration |
 | (8a) | State visibility: Draft visibility    | Access Control    | `GET /doc/officedoc/list`, `GET /doc/officedoc/{uuid}` | 🟢 Fixed |
 | (8b) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/officedoc/{uuid}` (ufficio diverso)         | 🟢 Fixed |
 | (8c) | Role hierarchy: Missing role check    | BOLA              | `GET /doc/officedoc/{uuid}` (ruolo < owner minRole)   | 🟢 Fixed |
 | (8d) | Privilege escalation: Non-owner edit  | BOLA              | `PUT /doc/officedoc/{uuid}` (non owner/non admin)     | 🟢 Fixed |
 | (8e) | Mass Assignment: Server-managed fields | Field-level     | `POST /doc/officedoc` (client sets owner/office/role) | 🟢 Fixed |
 | (8f) | Anti-enumeration: IDOR               | IDOR              | `GET /doc/officedoc/{uuid}` (non esiste)              | 🟢 Fixed |
-| **AppointmentResource** — Multi-part visibility + temporal authorization + ownership + anti-enumeration |
 | (9a) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/appointment/{uuid}` (ufficio diverso)       | 🟢 Fixed |
 | (9b) | Over-broad visibility (same office)   | BOLA              | `GET /doc/appointment/{uuid}` (non correlato)         | 🟢 Fixed |
 | (9c) | Temporal authorization: Delete window | Temporal          | `DELETE /doc/appointment/{uuid}` (< 24h)              | 🟢 Fixed |
@@ -313,12 +309,12 @@ Questo laboratorio include **15 vulnerabilità** di tipo Broken Access Control, 
 
 È possibile individuare gli identificativi delle persone esistenti distinguendo tra risposte 404 (non esiste) e 403 (non autorizzato).
 
-**Endpoint**: `GET /doc/person/find/{uuid}`
+**Endpoint**: `GET /person/find/{uuid}`
 
 **Problema**: Risposta diversa per UUID esistenti vs non esistenti
 ```
-GET /doc/person/999  → 404 Not Found (non esiste)
-GET /doc/person/valid-uuid → 403 Forbidden (esiste ma non autorizzato)
+GET /person/999  → 404 Not Found (non esiste)
+GET /person/valid-uuid → 403 Forbidden (esiste ma non autorizzato)
 ```
 
 **Soluzione**: Risposta uniforme (sempre 403) per evitare enumerazione
@@ -327,7 +323,7 @@ GET /doc/person/valid-uuid → 403 Forbidden (esiste ma non autorizzato)
 
 L'utente riesce a vedere dati che dovrebbero essere disponibili solo per il profilo 'admin'.
 
-**Endpoint**: `GET /doc/example.md`, `GET /doc/example.html`, `GET /doc/person/list`
+**Endpoint**: `GET /doc/example.md`, `GET /doc/example.html`, `GET /person/list`
 
 **Problema**: Utenti con ruolo 'user' vedono Richard Feynman (minRole=admin)
 
@@ -337,7 +333,7 @@ L'utente riesce a vedere dati che dovrebbero essere disponibili solo per il prof
 
 L'utente riesce a cancellare una persona anche se non ha il ruolo 'admin'.
 
-**Endpoint**: `DELETE /doc/person/delete/{uuid}`
+**Endpoint**: `DELETE /person/delete/{uuid}`
 
 **Problema**: `@RolesAllowed` include erroneamente "user"
 
@@ -347,7 +343,7 @@ L'utente riesce a cancellare una persona anche se non ha il ruolo 'admin'.
 
 L'utente riesce a vedere dati che non dovrebbero essere disponibili per il suo profilo.
 
-**Endpoint**: `GET /doc/person/find/{uuid}`
+**Endpoint**: `GET /person/find/{uuid}`
 
 **Problema**: Verifica del ruolo minimo mancante
 
@@ -367,7 +363,7 @@ L'utente riesce ad accedere al documento anche se non è autenticato.
 
 Un utente non-admin riesce a modificare il campo privilegiato `minRole` di una persona.
 
-**Endpoint**: `PUT /doc/person/edit/{uuid}`
+**Endpoint**: `PUT /person/edit/{uuid}`
 
 **Problema**: Il campo `minRole` è accettato dal DTO e applicato senza controllo di ruolo; il client può inviare qualsiasi valore
 
@@ -529,7 +525,7 @@ Un appuntamento inesistente restituisce 404 invece di 403.
 
 Una PUT senza controllo di autorizzazione è rimasta abilitata per errore.
 
-**Endpoint**: `PUT /doc/person/add`
+**Endpoint**: `PUT /person/add`
 
 **Problema**: Il metodo `addPersonPut()` è utilizzabile senza autenticazione (metodo HTTP non dichiarato)
 
@@ -552,7 +548,8 @@ Le **15 vulnerabilità** sono distribuite su 4 risorse REST, ognuna con test di 
 
 | Risorsa REST | Vulnerabilità | Test |
 |---|---|---|
-| [DocResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/DocResource.java) | (1)–(6), (X) | [DocResourceSicurezzaTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceSicurezzaTest.java), [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java), [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java) |
+| [DocResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/DocResource.java) | (2), (5) | [DocResourceSicurezzaTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceSicurezzaTest.java) |
+| [PersonResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/PersonResource.java) | (1), (3), (4), (6), (X) | [PersonResourceSicurezzaTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceSicurezzaTest.java), [PersonResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFunctionLevelTest.java), [PersonResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFieldLevelTest.java) |
 | [PersonalNoteResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResource.java) | (7a)–(7c) | [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java) |
 | [OfficeDocumentResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResource.java) | (8a)–(8f) | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
 | [AppointmentResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResource.java) | (9a)–(9f) | [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java) |
@@ -577,7 +574,8 @@ Dove (n) è l'id della vulnerabilità introdotta, ad esempio (1) o (9c).
 
 **Prima della risoluzione** (su `branch-vulnerable`), eseguendo `mvn verify -P security` vedrai **26 test rossi** (uno per ogni vulnerabilità, con alcuni scenari che coprono più weak):
 
-- DocResource: 7 test falliti
+- DocResource: 2 test falliti
+- PersonResource: 5 test falliti
 - PersonalNoteResource: 6 test falliti  
 - OfficeDocumentResource: 8 test falliti
 - AppointmentResource: 5 test falliti
@@ -609,7 +607,7 @@ public Person findByUuid(String uuid) {
 }
 ```
 
-**2. `DocResource.java`** — generare l'UUID alla creazione e usarlo come identificatore nei path:
+**2. `PersonResource.java`** — generare l'UUID alla creazione e usarlo come identificatore nei path:
 
 - Alla creazione della persona, generare un UUID casuale:
 ```java
@@ -621,8 +619,8 @@ response.setUuid(person.getUuid());
 ```
 - Sostituire `{id}` con `{uuid}` negli endpoint `findPerson` e `deletePerson`:
 ```
-GET    /doc/person/find/{uuid}
-DELETE /doc/person/delete/{uuid}
+GET    /person/find/{uuid}
+DELETE /person/delete/{uuid}
 ```
 
 #### Perché è importante
@@ -748,7 +746,7 @@ Richard Feynman ha `minRole=admin`, quindi serve un token con ruolo `admin`:
 curl http://localhost:8080/demo/admin.txt
 ```
 
-Poi usa questo token per chiamare `/doc/person/list` o `/doc/example.md`.
+Poi usa questo token per chiamare `/person/list` o `/doc/example.md`.
 </details>
 
 <details>
