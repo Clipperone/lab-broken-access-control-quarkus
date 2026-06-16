@@ -43,19 +43,19 @@ Parti da `branch-vulnerable`, fai fallire i test e correggi le vulnerabilità **
 Il progetto è anche un **riferimento per scrivere unit test di sicurezza sui controlli di
 autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Sono stati rappresentati vari scenari di riferimento:
 
-- **Function Level Access Control** (escalation verticale di ruolo) → [PersonResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFunctionLevelTest.java)
-- **Verb Tampering** (verbo HTTP non dichiarato rifiutato con 405) → [PersonResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFunctionLevelTest.java)
-- **Mass Assignment** (campi server-managed imposti dal client) → [PersonResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFieldLevelTest.java)
-- **Field-Level Authorization** (campi privilegiati modificabili solo dal ruolo autorizzato) → [PersonResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFieldLevelTest.java)
-- **Ownership-based access** (dati personali: visibili a owner o admin) → endpoint `/doc/note`, [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java)
-- **Isolamento multi-tenant per ufficio** (admin di altro ufficio escluso; draft/published; sharing) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
-- **Gerarchia di ruoli** (accesso al documento solo se ruolo ≥ soglia dell'owner) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
-- **Visibilità multi-parte** (appuntamenti: creatore, destinatario o admin di ufficio) → endpoint `/doc/appointment`, [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java)
-- **Autorizzazione temporale** (delete solo dal creatore e solo > 24h prima) → endpoint `/doc/appointment`, [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java)
+- **Function Level Access Control** (escalation verticale di ruolo)
+- **Mass Assignment** (campi server-managed imposti dal client)
+- **Field-Level Authorization** (campi privilegiati modificabili solo dal ruolo autorizzato)
+- **Ownership-based access** (dati personali: visibili a owner o admin)
+- **Isolamento multi-tenant per ufficio** (dati visibili solo se claim `office` corrisponde)
+- **Gerarchia di ruoli** (accesso al documento solo se ruolo ≥ soglia dell'owner)
+- **Visibilità multi-utente** (appuntamenti visibili solo a: creatore, destinatario o admin di ufficio)
+- **Autorizzazione temporale** (delete di un appuntamento consentita solo al creatore e solo entro 24h prima)
+- **Verb Tampering** (verbo HTTP non dichiarato rifiutato con 405)
 
 Documenti dedicati:
 
-- 📘 **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)** — *come progettare* i test: struttura di un test di autorizzazione, casi d'uso → unit test, pattern/anti-pattern, percorso a difficoltà incrementale, matrice di copertura.
+- 📘 **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)** — *come progettare* i test: struttura di un test di autorizzazione, casi d'uso → unit test, pattern/anti-pattern, matrice di copertura.
 - 🧭 **[GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md)** — onboarding step-by-step, descrizione di tutti i metodi OpenAPI, catalogo dei test dal più basilare al più avanzato, **identità e dati demo** per provare gli scenari a grana fine.
 - 🖥️ **Console didattica** su <http://localhost:8080/ui/> (in dev): prova gli scenari dal browser cambiando identità e osservando esito + spiegazione.
 
@@ -63,7 +63,7 @@ Documenti dedicati:
 
 Questo progetto dimostra come implementare una strategia di testing basata su tag JUnit per garantire la copertura dei requisiti di sicurezza in un'applicazione Quarkus con autenticazione JWT e RBAC (Role-Based Access Control).
 
-Completando il laboratorio acquisirai competenze pratiche su:
+Il laboratorio copre competenze pratiche su:
 
 - 🔐 **Autenticazione JWT**: implementazione e configurazione in Quarkus
 - 🛡️ **RBAC**: design e implementazione di Role-Based Access Control
@@ -136,7 +136,7 @@ curl http://localhost:8080/demo/admin,user.txt
 
 ![generazione del jwt dimostrativo](./src/docs/image/04-01-jwt-demo-generation.png)
 
-Qui c'è un payload del JWT completo generato come esempio:
+Payload del JWT completo generato come esempio:
 ```json
 {
   "iss": "https://unittestdemoapp.fugerit.org",
@@ -276,48 +276,48 @@ Cerca la vulnerabilità (X) che non è coperta dai test. Suggerimenti:
 
 Questo laboratorio include **15 vulnerabilità** di tipo Broken Access Control, distribuite su 4 scenari:
 
-| #   | Scenario / Vulnerabilità              | Classificazione   | Endpoint                                              | Status   |
-|-----|---------------------------------------|-------------------|-------------------------------------------------------|----------|
-| (1) | IDOR: ID Enumeration                 | IDOR              | `GET /person/find/{uuid}`                         | 🟢 Fixed |
-| (2) | Privilege Escalation (Data filtering)| BOLA              | `GET /doc/example.md`, `/doc/example.html`, `/person/list` | 🟢 Fixed |
-| (3) | Privilege Escalation (Delete action) | BOLA              | `DELETE /person/delete/{uuid}`                    | 🟢 Fixed |
-| (4) | Broken Object Level Authorization    | BOLA              | `GET /person/find/{uuid}`                         | 🟢 Fixed |
-| (5) | Missing Authentication               | Access Control    | `GET /doc/example.md`                                 | 🟢 Fixed |
-| (6) | Field-Level Authorization + Mass Assignment | Field-level | `PUT /person/edit/{uuid}`                         | 🟢 Fixed |
-| (X) | Verb Tampering (Hidden, no test)     | Function-level    | `PUT /person/add`                                 | 🟢 Fixed |
-| (7a) | Ownership read: accesso non ristretto | Ownership       | `GET /doc/note/{uuid}`                                | 🟢 Fixed |
-| (7b) | Ownership write: solo owner           | Ownership         | `PUT /doc/note/{uuid}`                                | 🟢 Fixed |
-| (7c) | Anti-enumeration: IDOR               | IDOR              | `GET /doc/note/{uuid}` (non esiste)                   | 🟢 Fixed |
-| (8a) | State visibility: Draft visibility    | Access Control    | `GET /doc/officedoc/list`, `GET /doc/officedoc/{uuid}` | 🟢 Fixed |
-| (8b) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/officedoc/{uuid}` (ufficio diverso)         | 🟢 Fixed |
-| (8c) | Role hierarchy: Missing role check    | BOLA              | `GET /doc/officedoc/{uuid}` (ruolo < owner minRole)   | 🟢 Fixed |
-| (8d) | Privilege escalation: Non-owner edit  | BOLA              | `PUT /doc/officedoc/{uuid}` (non owner/non admin)     | 🟢 Fixed |
-| (8e) | Mass Assignment: Server-managed fields | Field-level     | `POST /doc/officedoc` (client sets owner/office/role) | 🟢 Fixed |
-| (8f) | Anti-enumeration: IDOR               | IDOR              | `GET /doc/officedoc/{uuid}` (non esiste)              | 🟢 Fixed |
-| (9a) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/appointment/{uuid}` (ufficio diverso)       | 🟢 Fixed |
-| (9b) | Over-broad visibility (same office)   | BOLA              | `GET /doc/appointment/{uuid}` (non correlato)         | 🟢 Fixed |
-| (9c) | Temporal authorization: Delete window | Temporal          | `DELETE /doc/appointment/{uuid}` (< 24h)              | 🟢 Fixed |
-| (9d) | Ownership: Non-owner delete/move      | Ownership         | `DELETE /doc/appointment/{uuid}`, `PUT .../move`      | 🟢 Fixed |
-| (9e) | Mass Assignment: creatorUpn server-managed | Field-level   | `POST /doc/appointment` (client sets creatorUpn)      | 🟢 Fixed |
-| (9f) | Anti-enumeration: IDOR               | IDOR              | `GET /doc/appointment/{uuid}` (non esiste)            | 🟢 Fixed |
+| #   | Scenario / Vulnerabilità              | Classificazione   | Endpoint                                              |
+|-----|---------------------------------------|-------------------|-------------------------------------------------------|
+| (1) | Accesso a elenco non autorizzato                 | IDOR              | `GET /person/find/{uuid}`                         |
+| (2) | Privilege Escalation (Data filtering)| BOLA              | `GET /doc/example.md`, `/doc/example.html`, `/person/list` |
+| (3) | Privilege Escalation (Delete action) | BOLA              | `DELETE /person/delete/{uuid}`                    |
+| (4) | Broken Object Level Authorization    | BOLA              | `GET /person/find/{uuid}`                         |
+| (5) | Missing Authentication               | Access Control    | `GET /doc/example.md`                                 |
+| (6) | Field-Level Authorization + Mass Assignment | Field-level | `PUT /person/edit/{uuid}`                         |
+| (7a) | Ownership read: accesso non ristretto | Ownership       | `GET /doc/note/{uuid}`                                |
+| (7b) | Ownership write: solo owner           | Ownership         | `PUT /doc/note/{uuid}`                                |
+| (7c) | Accesso a note altrui               | IDOR              | `GET /doc/note/{uuid}`                   |
+| (8a) | State visibility: Draft visibility    | Access Control    | `GET /doc/officedoc/list`, `GET /doc/officedoc/{uuid}` |
+| (8b) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/officedoc/{uuid}` (ufficio diverso)         |
+| (8c) | Role hierarchy: Missing role check    | BOLA              | `GET /doc/officedoc/{uuid}` (ruolo < owner minRole)   |
+| (8d) | Privilege escalation: Non-owner edit  | BOLA              | `PUT /doc/officedoc/{uuid}` (non owner/non admin)     |
+| (8e) | Mass Assignment: Server-managed fields | Field-level     | `POST /doc/officedoc` (client sets owner/office/role) |
+| (8f) | Accesso a documenti altrui               | IDOR              | `GET /doc/officedoc/{uuid}             |
+| (9a) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/appointment/{uuid}` (ufficio diverso)       |
+| (9b) | Over-broad visibility (same office)   | BOLA              | `GET /doc/appointment/{uuid}` (non correlato)         |
+| (9c) | Temporal authorization: Delete window | Temporal          | `DELETE /doc/appointment/{uuid}` (< 24h)              |
+| (9d) | Ownership: Non-owner delete/move      | Ownership         | `DELETE /doc/appointment/{uuid}`, `PUT .../move`      |
+| (9e) | Mass Assignment: creatorUpn server-managed | Field-level   | `POST /doc/appointment` (client sets creatorUpn)      |
+| (9f) | Accesso a appuntamenti altrui               | IDOR              | `GET /doc/appointment/{uuid}            |
+| (X) | **Hidden, no test**     | Function-level    | `PUT /person/add`                                 |
 
-> 💡 **Sfida**: Le vulnerabilità (X), (8f), (9f) applicano l'anti-enumeration (IDOR uniforme). (9c) introduce l'**autorizzazione temporale**.
+> 💡 **Sfida**: La vulnerabilità (X) non è coperta dai test. Riesci a trovarla?
 
 ### Descrizione delle vulnerabilità
 
-#### (1) ID Enumeration (IDOR)
+#### (1) Insecure Direct Object Reference (IDOR)
 
-È possibile individuare gli identificativi delle persone esistenti distinguendo tra risposte 404 (non esiste) e 403 (non autorizzato).
+Un utente autorizzato accede ai dati di altre persone puntando direttamente all'UUID, senza controllo di autorizzazione. L'API non verifica che l'utente possieda il ruolo minimo richiesto dalla risorsa.
 
 **Endpoint**: `GET /person/find/{uuid}`
 
-**Problema**: Risposta diversa per UUID esistenti vs non esistenti
+**Problema**: L'API permette l'accesso diretto a dati di altre persone senza verificare il ruolo minimo. Chiunque autenticato legge i dati di chiunque altro. Come effetto secondario, risposte diverse (200 vs 404) rivelano anche l'esistenza di UUID altrui.
 ```
-GET /person/999  → 404 Not Found (non esiste)
-GET /person/valid-uuid → 403 Forbidden (esiste ma non autorizzato)
+GET /person/uuid-altrui-con-minRole-admin (da utente user) → 200 OK (accesso NON autorizzato!)
+GET /person/999-inesistente → 404 Not Found (rivelo anche che 999 non esiste)
 ```
 
-**Soluzione**: Risposta uniforme (sempre 403) per evitare enumerazione
+**Soluzione**: (1) **Core**: Verificare che l'utente possieda il `minRole` della persona richiesta, respingere con 403 se non autorizzato. (2) **Conseguenza**: Risposta uniforme (sempre 403) per UUID inesistente o non autorizzato, eliminando l'enumerazione come effetto collaterale.
 
 #### (2) Privilege Escalation - Visualizzazione dati
 
@@ -371,37 +371,37 @@ Un utente non-admin riesce a modificare il campo privilegiato `minRole` di una p
 - Verificare il ruolo prima di applicare `minRole`: solo 'admin' può modificarlo
 - Alternativa (design): esporre un DTO request diverso per ruoli non-admin, senza il campo `minRole` bindabile
 
-#### (7a) Ownership Read: Accesso non ristretto
+#### (7a) Ownership Read: Accesso non autorizzato
 
 Un utente non-owner riesce a leggere una nota che non gli appartiene (senza essere admin).
 
 **Endpoint**: `GET /doc/note/{uuid}`
 
-**Problema**: Verifica di ownership/admin mancante
+**Problema**: Manca la verifica di ownership della nota o se ruolo admin
 
 **Soluzione**: Controllare che l'utente sia owner o admin prima di restituire la nota
 
-#### (7b) Ownership Write: Modificazione non ristretta
+#### (7b) Ownership Write: Modifica non autorizzata
 
-Un admin riesce a modificare una nota altrui (gli ownership garantisce lettura, ma **non** modifica).
+Un admin riesce a modificare una nota altrui (un ruolo admin garantisce lettura ma la scrittura e riservata sempre all'owner).
 
 **Endpoint**: `PUT /doc/note/{uuid}`
 
-**Problema**: Verifica di ownership mancante (manca il vincolo "solo owner")
+**Problema**: Manca la verifica di ownership della nota (manca il vincolo "solo owner")
 
 **Soluzione**: Controllare che l'utente sia il solo owner (admin può leggere, ma non modificare)
 
-#### (7c) Anti-Enumeration: IDOR su Note
+#### (7c) IDOR: Accesso a note altrui
 
-Una nota inesistente restituisce 404 invece di 403, rendendo le note enumerabili.
+Un utente accede alle note di altri utenti puntando direttamente all'UUID, senza controllo di ownership. L'API non verifica che l'utente sia il proprietario della nota.
 
-**Endpoint**: `GET /doc/note/{uuid}` (non esiste)
+**Endpoint**: `GET /doc/note/{uuid}` (nota di altro utente)
 
-**Problema**: Risposta diversa per nota inesistente vs non autorizzata
+**Problema**: L'API permette l'accesso diretto a note di altri utenti senza verificare l'ownership. Chiunque autenticato legge e modifica le note di chiunque altro. Come effetto secondario, risposte diverse (200 vs 404) rivelano anche l'esistenza di note altrui.
 
-**Soluzione**: Risposta uniforme (sempre 403) per evitare enumerazione
+**Soluzione**: (1) **Core**: Verificare che l'utente sia il proprietario della nota, respingere con 403. (2) **Conseguenza**: Risposta uniforme (sempre 403) per nota inesistente o non autorizzata.
 
-#### (8a) State Visibility: Visibilità della bozza
+#### (8a) Visibilità della bozza: visualizzazione bozza non autorizzata
 
 Un utente dell'ufficio legge una bozza (DRAFT) di un altro, anche se non ne è owner.
 
@@ -413,11 +413,11 @@ Un utente dell'ufficio legge una bozza (DRAFT) di un altro, anche se non ne è o
 
 #### (8b) Tenant Isolation: Cross-office Access
 
-Un admin di un ufficio diverso accede ai documenti di un altro ufficio (anche se admin).
+Un admin di un ufficio diverso accede ai documenti di un altro ufficio.
 
 **Endpoint**: `GET /doc/officedoc/{uuid}` (ufficio CHIMICA), chiamante da FISICA/admin
 
-**Problema**: Manca il controllo dell'isolamento per ufficio
+**Problema**: Manca il controllo dell'isolamento per ufficio anche se  ruolo admin
 
 **Soluzione**: Verificare `Objects.equals(currentOffice(), document.getOwnerOffice())`; un admin di FISICA **non** vede documenti di CHIMICA
 
@@ -451,15 +451,15 @@ Il client riesce a impostare `ownerUpn`, `ownerOffice`, `ownerRole`, `status` ne
 
 **Soluzione**: Impostare owner/ufficio/ruolo/stato lato server dalle credenziali del token, ignorare il body
 
-#### (8f) Anti-Enumeration: IDOR su OfficeDocument
+#### (8f) IDOR: Accesso a documenti altrui
 
-Un documento inesistente restituisce 404 invece di 403.
+Un utente accede ai documenti di altri uffici o utenti puntando direttamente all'UUID, senza controllo di isolamento multi-tenant. L'API non verifica che l'utente appartenga all'ufficio del documento.
 
-**Endpoint**: `GET /doc/officedoc/{uuid}` (non esiste)
+**Endpoint**: `GET /doc/officedoc/{uuid}` (documento di altro ufficio/utente)
 
-**Problema**: Risposta diversa per documento inesistente vs non autorizzato
+**Problema**: L'API permette l'accesso diretto a documenti di altri uffici/utenti senza verificare l'isolamento multi-tenant. Un admin di un ufficio legge documenti di altri uffici. Come effetto secondario, risposte diverse (200 vs 404) rivelano anche l'esistenza di documenti altrui.
 
-**Soluzione**: Risposta uniforme (sempre 403) per evitare enumerazione
+**Soluzione**: (1) **Core**: Verificare che l'utente appartenga all'ufficio del documento o sia admin di quell'ufficio, respingere con 403. (2) **Conseguenza**: Risposta uniforme (sempre 403) per documento inesistente o non autorizzato.
 
 #### (9a) Tenant Isolation: Cross-office Visibility
 
@@ -471,9 +471,9 @@ Un admin di un ufficio diverso vede l'appuntamento di un altro ufficio.
 
 **Soluzione**: Verificare `Objects.equals(creatorOffice, currentOffice())` o `Objects.equals(scientistOffice, currentOffice())`
 
-#### (9b) Over-broad Visibility: Stesso ufficio, non correlato
+#### (9b) Missing Authorization: relazione (creatore/destinatario) non verificata
 
-Un utente dello stesso ufficio, non creatore e non destinatario, vede l'appuntamento.
+Un utente dello stesso ufficio, non creatore e non destinatario dell'appuntamento, vede l'appuntamento.
 
 **Endpoint**: `GET /doc/appointment/{uuid}` (creato da A, destinato a B), viewer è C dello stesso ufficio
 
@@ -481,7 +481,7 @@ Un utente dello stesso ufficio, non creatore e non destinatario, vede l'appuntam
 
 **Soluzione**: Restringere a `creatorUpn == self OR scientistUpn == self OR (admin && stessoUfficio)`
 
-#### (9c) Temporal Authorization: Finestra di eliminazione
+#### (9c) Temporal Authorization: Finestra di eliminazione dell'appuntamento
 
 Il creatore riesce a cancellare un appuntamento entro le 24h prima (quando dovrebbe essere vietato).
 
@@ -511,15 +511,15 @@ Il client riesce a impostare `creatorUpn` nel body della POST.
 
 **Soluzione**: Impostare `creatorUpn` lato server dal token, ignorare il body
 
-#### (9f) Anti-Enumeration: IDOR su Appointment
+#### (9f) IDOR: Accesso ad appuntamenti non autorizzati
 
-Un appuntamento inesistente restituisce 404 invece di 403.
+Un utente accede agli appuntamenti di altri utenti puntando direttamente all'UUID, senza controllo di visibilità multi-parte. L'API non verifica che l'utente sia creatore, destinatario o admin dell'ufficio.
 
-**Endpoint**: `GET /doc/appointment/{uuid}` (non esiste)
+**Endpoint**: `GET /doc/appointment/{uuid}` (appuntamento non autorizzato)
 
-**Problema**: Risposta diversa per appuntamento inesistente vs non autorizzato
+**Problema**: L'API permette l'accesso diretto ad appuntamenti senza verificare la visibilità multi-parte. Chiunque autenticato legge appuntamenti di cui non è creatore, destinatario né admin dell'ufficio. Come effetto secondario, risposte diverse (200 vs 404) rivelano anche l'esistenza di appuntamenti altrui.
 
-**Soluzione**: Risposta uniforme (sempre 403) per evitare enumerazione
+**Soluzione**: (1) **Core**: Verificare che l'utente sia creatore, destinatario scientifico o admin dell'ufficio, respingere con 403. (2) **Conseguenza**: Risposta uniforme (sempre 403) per appuntamento inesistente o non autorizzato.
 
 #### (X) Verb Tampering (Hidden, non coperto da test)
 
@@ -668,8 +668,8 @@ User → JWT Token → Quarkus Security → Role Check → Object Authorization 
 
 | Documento | Contenuto |
 |-----------|-----------|
-| 📘 [SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md) | Guida ai security unit test (formazione) |
-| 🧭 [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) | Onboarding, metodi OpenAPI, catalogo test, dati demo |
+| 📘 [SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md) | Guida ai security unit test |
+| 🧭 [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) | Overview, metodi OpenAPI, catalogo test, dati demo |
 | 📖 [JUNIT-TEST.md](JUNIT-TEST.md) | Note sugli unit test (indice delle classi) |
 | 🏷️ [JUNIT-TAG.md](JUNIT-TAG.md) | Security JUnit con tagging |
 | 🔧 [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Troubleshooting avanzato |
@@ -747,16 +747,6 @@ curl http://localhost:8080/demo/admin.txt
 ```
 
 Poi usa questo token per chiamare `/person/list` o `/doc/example.md`.
-</details>
-
-<details>
-<summary><b>I test passano ma la vulnerabilità è ancora presente</b></summary>
-
-Ricorda che ci sono 6 vulnerabilità:
-- 5 coperte dai test (che devono passare)
-- 1 BONUS non coperta dai test (devi trovarla manualmente)
-
-Cerca `// SOLUTION: (X)` nel codice per vedere la vulnerabilità nascosta.
 </details>
 
 ## Licenza
