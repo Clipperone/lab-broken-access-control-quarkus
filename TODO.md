@@ -64,10 +64,10 @@ questo branch (`feature/security-testing-training`) o su `main`.
 
 **Contesto.** La matrice in [SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md) ha celle senza test
 (buoni esercizi di estensione). Esempi:
-- `guest` su `GET /doc/person/list` e `GET /doc/person/find/{uuid}` → atteso 403 (function-level).
+- `guest` su `GET /person/list` e `GET /person/find/{uuid}` → atteso 403 (function-level).
 - `guest` su `GET /doc/example.html` → atteso 403.
-- `anonimo` (senza JWT) su `POST /doc/person/add`, `PUT /doc/person/edit/{uuid}`, `DELETE …` → 401.
-- `guest` su `PUT /doc/person/edit/{uuid}` con oggetto non accessibile → 403 (object-level).
+- `anonimo` (senza JWT) su `POST /person/add`, `PUT /person/edit/{uuid}`, `DELETE …` → 401.
+- `guest` su `PUT /person/edit/{uuid}` con oggetto non accessibile → 403 (object-level).
 
 Aggiungere i test mancanti, taggati coerentemente, e spuntare le celle nella matrice.
 
@@ -119,6 +119,6 @@ field-level) **non vengono verificati in nativo**, perché non esiste un `*IT` p
 
 **Da fare (se serve garantire l'authz anche sull'artefatto nativo):** aggiungere
 `DocResourceSicurezzaIT extends DocResourceSicurezzaTest` (ed eventualmente i corrispettivi per
-`DocResourceFunctionLevelTest` / `DocResourceFieldLevelTest`), così gli stessi test girano anche con
+`PersonResourceFunctionLevelTest` / `PersonResourceFieldLevelTest`), così gli stessi test girano anche con
 `mvn verify -Dnative`. **Verificare** che i JWT reali (RS256) e `@TestSecurity` funzionino in nativo
 (possibili aggiustamenti di reflection/risorse).

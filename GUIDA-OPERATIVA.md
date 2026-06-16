@@ -63,11 +63,11 @@ accede *nemmeno se admin*.
 | `GET /doc/example.html` | HTMLExample | admin, user | Genera il documento in HTML |
 | `GET /doc/example.adoc` | AsciiDocExample | admin | Genera il documento in AsciiDoc |
 | `GET /doc/example.pdf` | PDFExample | admin | Genera il documento in PDF |
-| `GET /doc/person/list` | listPerson | admin, user | Elenca le persone (lista **filtrata per ruolo**: chi non è admin non vede chi ha `minRole=admin`) |
-| `GET /doc/person/find/{uuid}` | findPerson | admin, user | Dettaglio persona per UUID, con **controllo object-level** sul `minRole`; inesistente/non autorizzato → 403 |
-| `POST /doc/person/add` | addPerson | admin | Crea una persona (uuid/data generati dal server) |
-| `PUT /doc/person/edit/{uuid}` | editPerson | admin, user | Modifica anagrafica; il campo privilegiato `minRole` è modificabile **solo da admin** (field-level) |
-| `DELETE /doc/person/delete/{uuid}` | deletePerson | admin | Cancella una persona |
+| `GET /person/list` | listPerson | admin, user | Elenca le persone (lista **filtrata per ruolo**: chi non è admin non vede chi ha `minRole=admin`) |
+| `GET /person/find/{uuid}` | findPerson | admin, user | Dettaglio persona per UUID, con **controllo object-level** sul `minRole`; inesistente/non autorizzato → 403 |
+| `POST /person/add` | addPerson | admin | Crea una persona (uuid/data generati dal server) |
+| `PUT /person/edit/{uuid}` | editPerson | admin, user | Modifica anagrafica; il campo privilegiato `minRole` è modificabile **solo da admin** (field-level) |
+| `DELETE /person/delete/{uuid}` | deletePerson | admin | Cancella una persona |
 
 ### `DemoJwtGeneratorRest` — generazione JWT dimostrativi (`/demo`, solo dev/test)
 
@@ -143,7 +143,7 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testDeletePersonAdminKoNonEsiste` (403) | `admin` cancella un id inesistente → 403 (uniforme) |
 | `testDeletePersonUserKo` (403) | `user` tenta la cancellazione (admin-only) → escalation verticale negata |
 
-### Livello 2 — Function-level & verb tampering — `DocResourceFunctionLevelTest`
+### Livello 2 — Function-level & verb tampering — `PersonResourceFunctionLevelTest`
 | Test | Descrizione |
 |------|-------------|
 | `testAddPersonNonAdminKo` (403, parametrico `user`/`guest`) | Qualsiasi non-admin che tenta la creazione → negato |
@@ -166,7 +166,7 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testFindPersonKoForbidden` (403) | Lo `user` su una persona admin-only → negato (BOLA) |
 | `testFindPersonKoNotFound` (403) | Id inesistente → 403 (anti-enumeration: non rivela l'esistenza) |
 
-### Livello 5 — Field-level & mass assignment — `DocResourceFieldLevelTest`
+### Livello 5 — Field-level & mass assignment — `PersonResourceFieldLevelTest`
 | Test | Descrizione |
 |------|-------------|
 | `testAddPersonIgnoresServerControlledFields` (201) | `uuid`/`id`/`creationDate` inviati dal client vengono ignorati (li genera il server) |
