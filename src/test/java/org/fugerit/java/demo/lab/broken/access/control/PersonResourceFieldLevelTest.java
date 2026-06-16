@@ -32,7 +32,7 @@ import static io.restassured.RestAssured.given;
  */
 @QuarkusTest
 @Slf4j
-class DocResourceFieldLevelTest {
+class PersonResourceFieldLevelTest {
 
     /** Crea una persona come admin e ne restituisce l'uuid generato dal server. */
     private String createPersonAsAdmin(String json) {
