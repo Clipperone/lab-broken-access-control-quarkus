@@ -33,21 +33,25 @@ Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A
 
 ### 🧪 Percorso 1 — Il laboratorio
 
-Parti da una versione vulnerabile, fai fallire i test e correggi le vulnerabilità (1)–(5) + la BONUS (X)
-su [DocResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/DocResource.java).
+Parti da `branch-vulnerable`, fai fallire i test e correggi le vulnerabilità **(1)–(9f)** distribuite su
+`DocResource`, `PersonalNoteResource`, `OfficeDocumentResource` e `AppointmentResource`.
 È il percorso descritto in questo README: [Quickstart](#quickstart) → [Lo scenario](#lo-scenario) →
 [Workflow del laboratorio](#workflow-del-laboratorio) → [Vulnerabilità dimostrative](#vulnerabilità-dimostrative).
 
 ### 🏢 Percorso 2 — Riferimento Scrittura Unit Test di Sicurezza
 
 Il progetto è anche un **riferimento per scrivere unit test di sicurezza sui controlli di
-autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Scenari di riferimento:
+autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Sono stati rappresentati vari scenari di riferimento:
 
-- **Function Level Access Control & verb tampering** → [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java)
-- **Mass assignment & Field-Level Authorization** → [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java)
+- **Function Level Access Control** (escalation verticale di ruolo) → [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java)
+- **Verb Tampering** (verbo HTTP non dichiarato rifiutato con 405) → [DocResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFunctionLevelTest.java)
+- **Mass Assignment** (campi server-managed imposti dal client) → [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java)
+- **Field-Level Authorization** (campi privilegiati modificabili solo dal ruolo autorizzato) → [DocResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceFieldLevelTest.java)
 - **Ownership-based access** (dati personali: visibili a owner o admin) → endpoint `/doc/note`, [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java)
-- **Multi-tenant per ufficio + gerarchia ruoli** (admin di un altro ufficio escluso; draft/published; sharing) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
-- **Appuntamenti: visibilità multi-parte + autorizzazione temporale** (delete solo dal creatore e solo > 24h prima) → endpoint `/doc/appointment`, [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java)
+- **Isolamento multi-tenant per ufficio** (admin di altro ufficio escluso; draft/published; sharing) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
+- **Gerarchia di ruoli** (accesso al documento solo se ruolo ≥ soglia dell'owner) → endpoint `/doc/officedoc`, [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java)
+- **Visibilità multi-parte** (appuntamenti: creatore, destinatario o admin di ufficio) → endpoint `/doc/appointment`, [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java)
+- **Autorizzazione temporale** (delete solo dal creatore e solo > 24h prima) → endpoint `/doc/appointment`, [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java)
 
 Documenti dedicati:
 
