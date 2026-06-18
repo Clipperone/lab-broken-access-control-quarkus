@@ -35,8 +35,6 @@ Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A
 
 Parti da `branch-vulnerable`, fai fallire i test e correggi le vulnerabilità **(1)–(9f)** distribuite su
 `DocResource`, `PersonResource`, `PersonalNoteResource`, `OfficeDocumentResource` e `AppointmentResource`.
-È il percorso descritto in questo README: [Quickstart](#quickstart) → [Lo scenario](#lo-scenario) →
-[Workflow del laboratorio](#workflow-del-laboratorio) → [Vulnerabilità dimostrative](#vulnerabilità-dimostrative).
 
 ### 🏢 Percorso 2 — Riferimento Scrittura Unit Test di Sicurezza
 
@@ -292,13 +290,13 @@ Questo laboratorio include **15 vulnerabilità** di tipo Broken Access Control, 
 | (8c) | Role hierarchy: Missing role check    | BOLA              | `GET /doc/officedoc/{uuid}` (ruolo < owner minRole)   |
 | (8d) | Privilege escalation: Non-owner edit  | BOLA              | `PUT /doc/officedoc/{uuid}` (non owner/non admin)     |
 | (8e) | Mass Assignment: Server-managed fields | Field-level     | `POST /doc/officedoc` (client sets owner/office/role) |
-| (8f) | Accesso a documenti altrui               | IDOR              | `GET /doc/officedoc/{uuid}             |
+| (8f) | Accesso a documenti altrui               | IDOR              | `GET /doc/officedoc/{uuid}`            |
 | (9a) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/appointment/{uuid}` (ufficio diverso)       |
 | (9b) | Over-broad visibility (same office)   | BOLA              | `GET /doc/appointment/{uuid}` (non correlato)         |
 | (9c) | Temporal authorization: Delete window | Temporal          | `DELETE /doc/appointment/{uuid}` (< 24h)              |
 | (9d) | Ownership: Non-owner delete/move      | Ownership         | `DELETE /doc/appointment/{uuid}`, `PUT .../move`      |
 | (9e) | Mass Assignment: creatorUpn server-managed | Field-level   | `POST /doc/appointment` (client sets creatorUpn)      |
-| (9f) | Accesso a appuntamenti altrui               | IDOR              | `GET /doc/appointment/{uuid}            |
+| (9f) | Accesso a appuntamenti altrui               | IDOR              | `GET /doc/appointment/{uuid}`            |
 | (X) | **Hidden, no test**     | Function-level    | `PUT /person/add`                                 |
 
 > 💡 **Sfida**: La vulnerabilità (X) non è coperta dai test. Riesci a trovarla?
