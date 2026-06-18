@@ -55,7 +55,7 @@ accede *nemmeno se admin*.
 
 ## 2. Metodi esposti via OpenAPI (descrizione sintetica)
 
-### `DocResource` — generazione documenti e gestione persone (`/doc`)
+### `DocResource` — generazione documenti (`/doc`)
 
 | Metodo & Path | operationId | Accesso | Descrizione |
 |---------------|-------------|---------|-------------|
@@ -63,6 +63,11 @@ accede *nemmeno se admin*.
 | `GET /doc/example.html` | HTMLExample | admin, user | Genera il documento in HTML |
 | `GET /doc/example.adoc` | AsciiDocExample | admin | Genera il documento in AsciiDoc |
 | `GET /doc/example.pdf` | PDFExample | admin | Genera il documento in PDF |
+
+### `PersonResource` — gestione persone (`/person`)
+
+| Metodo & Path | operationId | Accesso | Descrizione |
+|---------------|-------------|---------|-------------|
 | `GET /person/list` | listPerson | admin, user | Elenca le persone (lista **filtrata per ruolo**: chi non è admin non vede chi ha `minRole=admin`) |
 | `GET /person/find/{uuid}` | findPerson | admin, user | Dettaglio persona per UUID, con **controllo object-level** sul `minRole`; inesistente/non autorizzato → 403 |
 | `POST /person/add` | addPerson | admin | Crea una persona (uuid/data generati dal server) |
@@ -127,7 +132,9 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testUnauthorizedWithWrongJwt` (401) | Token malformato/non valido |
 | `testExpiredJWT` (401) | Token scaduto |
 
-### Livello 1 — RBAC a grana grossa (ruolo sull'endpoint) — `DocResourceSicurezzaTest`
+### Livello 1 — RBAC a grana grossa (ruolo sull'endpoint)
+
+**`DocResourceSicurezzaTest`** (generazione documenti)
 | Test | Descrizione |
 |------|-------------|
 | `testHtmlOkNoAdminRole` (200) | `user` accede all'HTML (consentito) |
@@ -138,6 +145,10 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testMarkdown403NoAdminRole` (403) | `user` sul PDF (admin-only) → negato |
 | `testForbiddenWithJwt` (403) | `guest` sul PDF → negato |
 | `testForbiddenJwtAsciiDoc` (403) | `guest` sull'AsciiDoc → negato |
+
+**`PersonResourceSicurezzaTest`** (CRUD persone)
+| Test | Descrizione |
+|------|-------------|
 | `testAddPersonAdminOk` (201) | `admin` crea una persona |
 | `testAddDeletePersonAdminOk` (200) | `admin` crea e poi cancella una persona |
 | `testDeletePersonAdminKoNonEsiste` (403) | `admin` cancella un id inesistente → 403 (uniforme) |
@@ -150,15 +161,21 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testVerbTamperingPutOnAddNotAllowed` (405) | `PUT` su un path che dichiara solo `POST` |
 | `testVerbTamperingDeleteOnListNotAllowed` (405) | `DELETE` su un path che dichiara solo `GET` |
 
-### Livello 3 — Data filtering per ruolo (escalation orizzontale) — `DocResourceSicurezzaTest`
+### Livello 3 — Data filtering per ruolo (escalation orizzontale)
+
+**`DocResourceSicurezzaTest`** (contenuto del documento)
 | Test | Descrizione |
 |------|-------------|
 | `testOkMarkDownConVerificaContenutoAdmin` (200) | L'`admin` vede nel documento la persona riservata (Feynman) |
 | `testOkMarkDownConVerificaContenutoUser` (200) | Lo `user` **non** vede la persona riservata (dati filtrati) |
+
+**`PersonResourceSicurezzaTest`** (lista persone)
+| Test | Descrizione |
+|------|-------------|
 | `testListPersonsResultKo` (200) | Lista per `user`: esclude la persona admin-only |
 | `testListPersonsResultOk` (200) | Lista per `admin`: include la persona admin-only |
 
-### Livello 4 — Object-level (BOLA/IDOR) & anti-enumeration — `DocResourceSicurezzaTest`
+### Livello 4 — Object-level (BOLA/IDOR) & anti-enumeration — `PersonResourceSicurezzaTest`
 | Test | Descrizione |
 |------|-------------|
 | `testFindPersonOkAdmin` (200) | L'`admin` accede alla persona con `minRole=admin` |
@@ -238,4 +255,4 @@ Prova rapida: preset **Bohr** (FISICA/admin) → *Documenti di ufficio* → Read
 - `DemoJwtGeneratorRestTest` — test dell'endpoint demo di generazione JWT.
 - `DocResourceIT` — riesecuzione in modalità *packaged*/nativa (failsafe, con `-Dnative`).
 
-> Nota: questi tre non sono eseguiti dal `mvn verify` standard perché privi dei tag in `<groups>` di surefire (vedi `TODO.md` #1/#2).
+> Nota: i tre unit test (`DocResourceTest`, `DocHelperTest`, `DemoJwtGeneratorRestTest`) non sono eseguiti dal `mvn verify` standard perché privi dei tag in `<groups>` di surefire (vedi `TODO.md` #1/#2). `DocResourceIT` è invece escluso in quanto integration test (failsafe): gira solo con `-Dnative`/`skipITs=false`.
