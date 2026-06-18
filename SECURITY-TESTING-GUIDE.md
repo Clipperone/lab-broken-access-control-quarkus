@@ -182,7 +182,7 @@ Come leggere ogni scenario:
 
 - **❌ Test negativo** — un'azione illegittima viene **negata** (`403`/`405`/`401`). Dimostra che il controllo esiste e scatta. Il test è **superato** se l'azione non autorizzata non viene eseguita.
 - **✅ Test positivo** — l'azione legittima **funziona** (`200`/`201`) e, dove conta, si verifica anche l'*effetto* (lista filtrata, campo invariato, owner/ufficio impostati dal server). Il test è **superato** se l'azione autorizzata viene eseguita correttamente.
-- **Altri test della suite** — l'elenco completo dei restanti test dello scenario, così la mappa di copertura resta esaustiva anche se il codice è mostrato solo per la coppia rappresentativa.
+- **Altri test della suite** — l'elenco completo dei restanti test dello scenario, così la mappa di copertura resta esaustiva anche se il codice è mostrato solo per la coppia rappresentativa. Ogni voce è marcata ✅ (positivo) / ❌ (negativo), prima i positivi poi i negativi, con la classe di controllo e cosa verifica.
 
 Tabella-indice (classe OWASP A01 × caso d'uso × coppia di test):
 
@@ -243,12 +243,18 @@ void testOkMarkDownConVerificaContenutoUser() {
 ```
 
 **Altri test della suite:**
-- `testHtmlOkNoAdminRole` / `testPdfOkNoAdminRole` — 200 sui formati consentiti (`user` su HTML; `admin` su PDF)
-- `testMarkdown403NoAdminRole` — 403 sul formato riservato con `@TestSecurity`
-- `testOkWithJwt` / `testOkJwtMarkDown` / `testOkJwtAsciiDoc` — 200 con JWT su PDF/MarkDown/AsciiDoc
-- `testOkMarkDownConVerificaContenutoAdmin` — 200, l'`admin` **vede** "Feynman" (controprova del filtro field-level)
-- `testForbiddenJwtAsciiDoc` — 403 con `guest` su formato riservato
-- `testUnauthorizedWithoutJwt` / `testUnauthorizedWithWrongJwt` / `testExpiredJWT` / `testMarkdown401NoAuthorizationBearer` — **authn**: token assente/non valido/scaduto → 401
+- ✅ `testHtmlOkNoAdminRole` — **positivo** (function-level): un `user` genera l'HTML (formato consentito) → 200.
+- ✅ `testPdfOkNoAdminRole` — **positivo** (function-level): un `admin` genera il PDF (formato riservato) → 200.
+- ✅ `testOkWithJwt` — **positivo**: `admin` via JWT reale sul PDF → 200 (variante con token reale).
+- ✅ `testOkJwtMarkDown` — **positivo**: `guest` via JWT sul MarkDown (formato aperto) → 200.
+- ✅ `testOkJwtAsciiDoc` — **positivo**: `admin` via JWT sull'AsciiDoc → 200.
+- ✅ `testOkMarkDownConVerificaContenutoAdmin` — **positivo** (controprova field-level): l'`admin` **vede** "Feynman" nel MarkDown → 200; conferma che il filtro sul contenuto non nasconde i dati a chi è autorizzato.
+- ❌ `testMarkdown403NoAdminRole` — **negativo** (function-level): un `user` chiede un formato riservato con `@TestSecurity` → 403.
+- ❌ `testForbiddenJwtAsciiDoc` — **negativo** (function-level): un `guest` chiede l'AsciiDoc, riservato a ruoli superiori → 403.
+- ❌ `testUnauthorizedWithoutJwt` — **negativo** (authn): richiesta senza token → 401.
+- ❌ `testUnauthorizedWithWrongJwt` — **negativo** (authn): token non valido → 401.
+- ❌ `testExpiredJWT` — **negativo** (authn): token scaduto → 401.
+- ❌ `testMarkdown401NoAuthorizationBearer` — **negativo** (authn): header `Authorization` assente → 401.
 
 ### 2. Lettura persone
 
@@ -295,10 +301,10 @@ void testFindPersonOkUser() {
 ```
 
 **Altri test della suite (lettura):**
-- `testFindPersonKoNotFound` — uuid inesistente → **403** (protezione anti-enumeration), non 404.
-- `testFindPersonOkAdmin` — l'`admin` accede a una persona `minRole = admin` (200, corpo con "Feynman").
-- `testListPersonsResultKo` — `user` su `/person/list`: 200 ma la lista **non** contiene "Feynman" (data filtering: stesso principio dello scenario 1, sull'*effetto*).
-- `testListPersonsResultOk` — `admin` su `/person/list`: 200 e la lista **contiene** "Feynman" (controprova).
+- ✅ `testFindPersonOkAdmin` — **positivo** (object-level): l'`admin` accede a una persona con `minRole = admin` → 200 (corpo con "Feynman").
+- ✅ `testListPersonsResultKo` — **positivo** (data filtering): un `user` chiama `/person/list` → 200, ma la lista **non** contiene "Feynman" (il controllo è sull'*effetto*, non sullo status).
+- ✅ `testListPersonsResultOk` — **positivo** (controprova): l'`admin` chiama `/person/list` → 200 e la lista **contiene** "Feynman".
+- ❌ `testFindPersonKoNotFound` — **negativo** (anti-enumeration): uuid inesistente → 403, non 404, per non rivelare l'esistenza degli id.
 
 ### 3. Creazione e cancellazione persone
 
@@ -366,10 +372,10 @@ void testVerbTamperingPutOnAddNotAllowed() {
 
 
 **Altri test della suite:**
-- `testVerbTamperingDeleteOnListNotAllowed` — `DELETE` su `/person/list` (solo `GET`) → 405.
-- `testDeletePersonUserKo` *(in PersonResourceSicurezzaTest)* — un `user` prova a cancellare → **403** (escalation verticale sulla delete).
-- `testAddDeletePersonAdminOk` *(in PersonResourceSicurezzaTest)* — l'`admin` crea e poi cancella → 200 (dato fresco creato nel test).
-- `testDeletePersonAdminKoNonEsiste` *(in PersonResourceSicurezzaTest)* — `admin` cancella un uuid inesistente → **403** (anti-enumeration).
+- ✅ `testAddDeletePersonAdminOk` *(in PersonResourceSicurezzaTest)* — **positivo**: l'`admin` crea e poi cancella la stessa persona → 200 (dato fresco creato nel test).
+- ❌ `testVerbTamperingDeleteOnListNotAllowed` — **negativo** (verb tampering): `DELETE` su `/person/list` (dichiara solo `GET`) → 405.
+- ❌ `testDeletePersonUserKo` *(in PersonResourceSicurezzaTest)* — **negativo** (escalation verticale): un `user` prova a cancellare una persona → 403.
+- ❌ `testDeletePersonAdminKoNonEsiste` *(in PersonResourceSicurezzaTest)* — **negativo** (anti-enumeration): l'`admin` cancella un uuid inesistente → 403, non 404.
 
 ### 4. Modifica persona
 
@@ -431,8 +437,8 @@ void testEditPersonUserCanEditAnagraphicFields() {
 ```
 
 **Altri test della suite:**
-- `testEditPersonAdminCanChangeMinRole` — l'`admin` **può** portare `minRole` a `admin` (200, effetto verificato): controprova della regola field-level.
-- `testAddPersonIgnoresServerControlledFields` — **mass assignment**: il client invia `uuid`/`id`/`creationDate`, ma il server li **ignora** e genera il proprio uuid (assert su `assertNotEquals` dell'uuid d'attacco).
+- ✅ `testEditPersonAdminCanChangeMinRole` — **positivo** (controprova field-level): l'`admin` **può** portare `minRole` a `admin` → 200, con effetto verificato sul campo.
+- ✅ `testAddPersonIgnoresServerControlledFields` — **positivo** (mass assignment): il client invia `uuid`/`id`/`creationDate`, ma il server li **ignora** e genera il proprio uuid → 201 (`assertNotEquals` sull'uuid d'attacco).
 
 ### 5. Note personali (ownership)
 
@@ -479,10 +485,10 @@ void testAdminReadsAnyNote() {
 ```
 
 **Altri test della suite:**
-- `testOwnerReadsOwnNote` — l'owner legge la propria nota → 200, con `ownerUpn == "EINSTEIN"` (effetto).
-- `testOtherUserCannotReadNote` — un utente non-owner e non-admin (PLANCK) → **403** in lettura.
-- `testOwnerCanEditNote` — l'owner modifica la propria nota → 200 (titolo aggiornato, effetto verificato).
-- `testReadNonExistentNote` — nota inesistente → **403** (anti-enumeration, indistinguibile dal non autorizzato).
+- ✅ `testOwnerReadsOwnNote` — **positivo**: l'owner legge la propria nota → 200, con `ownerUpn == "EINSTEIN"` (effetto).
+- ✅ `testOwnerCanEditNote` — **positivo**: l'owner modifica la propria nota → 200 (titolo aggiornato, effetto verificato).
+- ❌ `testOtherUserCannotReadNote` — **negativo** (ownership): un utente non-owner e non-admin (PLANCK) prova a leggere la nota altrui → 403.
+- ❌ `testReadNonExistentNote` — **negativo** (anti-enumeration): nota inesistente → 403, indistinguibile dal non autorizzato.
 
 ### 6. Documenti d'ufficio (multi-tenant)
 
@@ -555,14 +561,16 @@ void testMassAssignmentOwnerOfficeIgnored() {
 ```
 
 **Altri test della suite:**
-- `testOwnerReadsOwnDraft` — l'owner legge la propria bozza → 200 (`status == DRAFT`, `ownerOffice == FISICA`).
-- `testDraftNotVisibleToOfficeAdmin` — la bozza **non** è visibile all'admin di ufficio finché non è pubblicata → 403.
-- `testSameOfficeLowerRoleForbidden` — stesso ufficio ma **ruolo inferiore** all'owner (PLANCK/guest) → 403 (gerarchia).
-- `testAntiEnumerationNonExistent` — uuid inesistente → **403** (anti-enumeration).
-- `testOwnerCanEdit` / `testOfficeAdminCanEditPublished` — modifica consentita a owner e ad admin stesso ufficio su PUBLISHED → 200.
-- `testSameOfficeNonAdminCannotEdit` — stesso ufficio, può leggere ma **non** è admin → 403 in modifica.
-- `testCrossOfficeAdminCannotEdit` — admin di ufficio diverso → 403 anche in modifica.
-- `testSharingGrantsCrossOfficeRead` / `testNotSharedCrossOfficeForbidden` — lo **sharing** esplicito abilita la lettura cross-office (200); senza condivisione resta 403.
+- ✅ `testOwnerReadsOwnDraft` — **positivo**: l'owner legge la propria bozza → 200 (`status == DRAFT`, `ownerOffice == FISICA`).
+- ✅ `testOwnerCanEdit` — **positivo**: l'owner modifica il proprio documento → 200.
+- ✅ `testOfficeAdminCanEditPublished` — **positivo**: l'admin dello stesso ufficio modifica un documento PUBLISHED → 200.
+- ✅ `testSharingGrantsCrossOfficeRead` — **positivo** (sharing): un utente di ufficio diverso, destinatario di una condivisione esplicita, legge → 200.
+- ❌ `testDraftNotVisibleToOfficeAdmin` — **negativo** (draft): la bozza non è visibile all'admin di ufficio finché non è pubblicata → 403.
+- ❌ `testSameOfficeLowerRoleForbidden` — **negativo** (gerarchia ruoli): stesso ufficio ma ruolo inferiore all'owner (PLANCK/guest) → 403.
+- ❌ `testSameOfficeNonAdminCannotEdit` — **negativo**: stesso ufficio, può leggere (ruolo ≥) ma non è admin → 403 in modifica.
+- ❌ `testCrossOfficeAdminCannotEdit` — **negativo** (tenant isolation): admin di ufficio diverso → 403 anche in modifica.
+- ❌ `testNotSharedCrossOfficeForbidden` — **negativo** (sharing): utente di ufficio diverso senza condivisione → 403.
+- ❌ `testAntiEnumerationNonExistent` — **negativo** (anti-enumeration): uuid inesistente → 403.
 
 ### 7. Appuntamenti (visibilità multi-parte e regola temporale)
 
@@ -609,13 +617,16 @@ void testCreatorDeleteMoreThan24hOk() {
 ```
 
 **Altri test della suite:**
-- `testCreatorCanView` / `testScientistCanView` / `testOfficeAdminCanView` — visibilità **multi-parte**: creatore, destinatario e admin di ufficio leggono → 200.
-- `testCrossOfficeAdminForbidden` — admin di **altro** ufficio → 403 (isolamento di tenant).
-- `testUnrelatedSameOfficeForbidden` — estraneo dello **stesso** ufficio, non creatore/destinatario/admin → 403 (la visibilità è per **relazione**, non per ufficio).
-- `testAntiEnumerationNonExistent` — uuid inesistente → **403** (anti-enumeration).
-- `testNonCreatorCannotDelete` — un non-creatore (anche il destinatario) → 403 sulla delete (**ownership**).
-- `testCreatorCanMove` / `testNonCreatorCannotMove` — lo spostamento è consentito **solo** al creatore (200 vs 403).
-- `testCreatorUpnIgnored` — **mass assignment**: `creatorUpn` inviato dal client è ignorato; il creatore è preso dal token (effetto verificato: `creatorUpn == "EINSTEIN"`).
+- ✅ `testCreatorCanView` — **positivo**: il creatore legge il proprio appuntamento → 200.
+- ✅ `testScientistCanView` — **positivo**: lo scienziato destinatario legge l'appuntamento → 200.
+- ✅ `testOfficeAdminCanView` — **positivo**: l'admin dello stesso ufficio legge l'appuntamento → 200.
+- ✅ `testCreatorCanMove` — **positivo** (ownership): solo il creatore sposta l'appuntamento → 200.
+- ✅ `testCreatorUpnIgnored` — **positivo** (mass assignment): `creatorUpn` inviato dal client è ignorato, il creatore è preso dal token → 201 (`creatorUpn == "EINSTEIN"`).
+- ❌ `testCrossOfficeAdminForbidden` — **negativo** (tenant isolation): admin di un altro ufficio → 403.
+- ❌ `testUnrelatedSameOfficeForbidden` — **negativo**: estraneo dello stesso ufficio (non creatore/destinatario/admin) → 403 (la visibilità è per **relazione**, non per ufficio).
+- ❌ `testNonCreatorCannotDelete` — **negativo** (ownership): un non-creatore (anche il destinatario) prova a cancellare → 403.
+- ❌ `testNonCreatorCannotMove` — **negativo** (ownership): un non-creatore prova a spostare → 403.
+- ❌ `testAntiEnumerationNonExistent` — **negativo** (anti-enumeration): uuid inesistente → 403.
 
 ## Checklist: aggiungere un nuovo security test
 
