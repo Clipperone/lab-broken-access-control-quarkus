@@ -17,8 +17,8 @@ Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A
 
 ## Indice
 
-- [Due modi di usare il progetto](#due-modi-di-usare-il-progetto)
 - [Il progetto](#il-progetto)
+- [Due modi di usare il progetto](#due-modi-di-usare-il-progetto)
 - [Quickstart](#quickstart)
 - [Lo scenario](#lo-scenario)
 - [Workflow del laboratorio](#workflow-del-laboratorio)
@@ -29,37 +29,9 @@ Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A
 - [❓ FAQ / Problemi comuni](#-faq--problemi-comuni)
 - [Licenza](#licenza)
 
-## Due modi di usare il progetto
-
-### 🧪 Percorso 1 — Il laboratorio
-
-Parti da `branch-vulnerable`, fai fallire i test e correggi le vulnerabilità **(1)–(9f)** distribuite su
-`DocResource`, `PersonResource`, `PersonalNoteResource`, `OfficeDocumentResource` e `AppointmentResource`.
-
-### 🏢 Percorso 2 — Riferimento Scrittura Unit Test di Sicurezza
-
-Il progetto è anche un **riferimento per scrivere unit test di sicurezza sui controlli di
-autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Sono stati rappresentati vari scenari di riferimento:
-
-- **Function Level Access Control** (escalation verticale di ruolo)
-- **Mass Assignment** (campi server-managed imposti dal client)
-- **Field-Level Authorization** (campi privilegiati modificabili solo dal ruolo autorizzato)
-- **Ownership-based access** (dati personali: visibili a owner o admin)
-- **Isolamento multi-tenant per ufficio** (dati visibili solo se claim `office` corrisponde)
-- **Gerarchia di ruoli** (accesso al documento solo se ruolo ≥ soglia dell'owner)
-- **Visibilità multi-utente** (appuntamenti visibili solo a: creatore, destinatario o admin di ufficio)
-- **Autorizzazione temporale** (delete di un appuntamento consentita solo al creatore e solo entro 24h prima)
-- **Verb Tampering** (verbo HTTP non dichiarato rifiutato con 405)
-
-Documenti dedicati:
-
-- 📘 **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)** — *come progettare* i test: struttura di un test di autorizzazione, casi d'uso → unit test, pattern/anti-pattern, matrice di copertura.
-- 🧭 **[GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md)** — onboarding step-by-step, descrizione di tutti i metodi OpenAPI, catalogo dei test dal più basilare al più avanzato, **identità e dati demo** per provare gli scenari a grana fine.
-- 🖥️ **Console didattica** su <http://localhost:8080/ui/> (in dev): prova gli scenari dal browser cambiando identità e osservando esito + spiegazione.
-
 ## Il progetto
 
-Questo progetto dimostra come implementare una strategia di testing basata su tag JUnit per garantire la copertura dei requisiti di sicurezza in un'applicazione Quarkus con autenticazione JWT e RBAC (Role-Based Access Control).
+Questo progetto mostra come identificare vulnerabilità di tipo Broken Access Control e come implementare una strategia di testing basata su tag JUnit per garantire la copertura dei requisiti di sicurezza in un'applicazione Quarkus con autenticazione JWT e RBAC (Role-Based Access Control).
 
 Il laboratorio copre competenze pratiche su:
 
@@ -69,6 +41,32 @@ Il laboratorio copre competenze pratiche su:
 - ✅ **Security Testing**: strategia di test con JUnit tags e coverage
 - 📊 **Security Metrics**: misurazione della copertura dei requisiti di sicurezza
 - 🔒 **Defense in Depth**: approccio a più livelli per la sicurezza applicativa
+
+## Due modi di usare il progetto
+
+### 🧪 Percorso 1 — Il laboratorio
+
+Parti da `branch-vulnerable`, fai fallire i test e correggi le vulnerabilità **(1)–(9f)** distribuite su `DocResource`, `PersonResource`, `PersonalNoteResource`, `OfficeDocumentResource` e `AppointmentResource`.
+
+### 🏢 Percorso 2 — Riferimento per la Scrittura Unit Test di Sicurezza
+
+Il progetto è anche un **riferimento per scrivere unit test di sicurezza sui controlli di autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Sono stati rappresentati vari scenari di riferimento:
+
+- **Function Level Access Control** (escalation verticale di ruolo)
+- **Mass Assignment** (campi server-managed imposti dal client)
+- **Field-Level Authorization** (campi privilegiati modificabili solo dal ruolo autorizzato)
+- **Ownership-based access** (dati personali: visibili solo a owner o admin)
+- **Isolamento multi-tenant per ufficio** (dati visibili solo se claim `office` corrisponde)
+- **Gerarchia di ruoli** (accesso al documento solo se il ruolo di chi cerca di accedere al dato è ≥ del ruolo dell'owner del dato)
+- **Visibilità multi-utente** (gestione appuntamenti, i dati sono visibili solo a: creatore, destinatario o admin di ufficio)
+- **Autorizzazione temporale** (cancellazione di un appuntamento consentita solo al creatore e solo entro 24h prima)
+- **Verb Tampering** (verbo HTTP non dichiarato rifiutato con 405)
+
+Documenti dedicati:
+
+- 📘 **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)** — *come progettare* i test: struttura di un test di autorizzazione, casi d'uso → unit test, pattern/anti-pattern, matrice di copertura.
+- 🧭 **[GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md)** — onboarding step-by-step, descrizione di tutti i metodi OpenAPI, catalogo dei test dal più basilare al più avanzato, **identità e dati demo** per provare gli scenari a grana fine.
+- 🖥️ **Console didattica** su <http://localhost:8080/ui/> (in dev): prova gli scenari dal browser cambiando identità e osservando esito + spiegazione.
 
 ### Stack tecnologico
 
@@ -225,7 +223,7 @@ L'applicazione gestisce 3 ruoli ed espone dei path che generare documenti in div
 | `user`  | Accesso a MarkDown e HTML          | Vedere Hack e Turing, documenti base        |
 | `guest` | Accesso solo a MarkDown            | Visualizzazione read-only limitata          |
 
-Sono implementati ulteriori esempi di autorizzazione a grana fine (note personali, documenti di ufficio, appuntamenti) descritti in [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) (endpoint, regole, identità e dati demo).
+Sono implementati **ulteriori esempi di autorizzazione a grana fine** (note personali, documenti di ufficio, appuntamenti) descritti in [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) (endpoint, regole, identità e dati demo).
 
 ## Workflow del laboratorio
 
@@ -248,7 +246,7 @@ mvn quarkus:dev
 mvn verify -P security
 ```
 
-I test falliranno dove ci sono vulnerabilità. Osserva gli errori per capire cosa non funziona.
+Utilizzando il branch `branch-vulnerable` i test falliranno dove ci sono vulnerabilità. Osserva gli errori per capire cosa non funziona.
 
 ### Passo 4: Correggi le vulnerabilità
 
@@ -272,7 +270,7 @@ Cerca la vulnerabilità (X) che non è coperta dai test. Suggerimenti:
 
 ## Vulnerabilità dimostrative
 
-Questo laboratorio include **15 vulnerabilità** di tipo Broken Access Control, distribuite su 4 scenari:
+Questo laboratorio include **15 vulnerabilità** di tipo Broken Access Control, distribuite su vari scenari:
 
 | #   | Scenario / Vulnerabilità              | Classificazione   | Endpoint                                              |
 |-----|---------------------------------------|-------------------|-------------------------------------------------------|
