@@ -2,7 +2,7 @@
 
 Documento di onboarding per lo sviluppatore: cosa fare appena aperto il progetto, l'elenco di **tutti i
 metodi esposti** (OpenAPI) con una descrizione sintetica, e il **catalogo dei test di sicurezza** dal
-più basilare al più avanzato. Per il *come progettare* i test vedi [SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md).
+più basilare al più avanzato. Per il *come progettare* i test vedi [SECURITY-UNIT-TEST.md](SECURITY-UNIT-TEST.md).
 
 > Legenda esiti: **401** = non autenticato (*chi sei?*) · **403** = autenticato ma non autorizzato
 > (*cosa puoi fare?*) · **405** = metodo HTTP non consentito · **200/201** = operazione consentita.
