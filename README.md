@@ -64,7 +64,8 @@ Il progetto è anche un **riferimento per scrivere unit test di sicurezza sui co
 
 Documenti dedicati:
 
-- 📘 **[SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md)** — *come progettare* i test: struttura di un test di autorizzazione, casi d'uso → unit test, pattern/anti-pattern, matrice di copertura.
+- 🚀 **[SECURITY-UNIT-TEST-QUICKSTART.md](SECURITY-UNIT-TEST-QUICKSTART.md)** — *da zero al primo test in 15 minuti*: prerequisiti, esempio completo con codice e spiegazione, cosa fare dopo.
+- 📘 **[SECURITY-UNIT-TEST.md](SECURITY-UNIT-TEST.md)** — *come progettare* i test: struttura di un test di autorizzazione, casi d'uso → unit test, pattern/anti-pattern, matrice di copertura.
 - 🧭 **[GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md)** — onboarding step-by-step, descrizione di tutti i metodi OpenAPI, catalogo dei test dal più basilare al più avanzato, **identità e dati demo** per provare gli scenari a grana fine.
 - 🖥️ **Console didattica** su <http://localhost:8080/ui/> (in dev): prova gli scenari dal browser cambiando identità e osservando esito + spiegazione.
 
@@ -664,7 +665,8 @@ User → JWT Token → Quarkus Security → Role Check → Object Authorization 
 
 | Documento | Contenuto |
 |-----------|-----------|
-| 📘 [SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md) | Guida ai security unit test |
+| 🚀 [SECURITY-UNIT-TEST-QUICKSTART.md](SECURITY-UNIT-TEST-QUICKSTART.md) | Primo test BAC in 15 minuti |
+| 📘 [SECURITY-UNIT-TEST.md](SECURITY-UNIT-TEST.md) | Guida ai security unit test |
 | 🧭 [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) | Overview, metodi OpenAPI, catalogo test, dati demo |
 | 📖 [JUNIT-TEST.md](JUNIT-TEST.md) | Note sugli unit test (indice delle classi) |
 | 🏷️ [JUNIT-TAG.md](JUNIT-TAG.md) | Security JUnit con tagging |

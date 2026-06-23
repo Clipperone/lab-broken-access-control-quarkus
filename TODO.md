@@ -63,7 +63,7 @@ sanato (`main` / `feature/security-testing-training`).
 
 ## 4. Estendere la matrice di copertura alle celle mancanti — 🟢
 
-**Contesto.** La matrice in [SECURITY-TESTING-GUIDE.md](SECURITY-TESTING-GUIDE.md) ha celle senza test
+**Contesto.** La matrice in [SECURITY-UNIT-TEST.md](SECURITY-UNIT-TEST.md) ha celle senza test
 (buoni esercizi di estensione). Esempi:
 - `guest` su `GET /person/list` e `GET /person/find/{uuid}` → atteso 403 (function-level).
 - `guest` su `GET /doc/example.html` → atteso 403.

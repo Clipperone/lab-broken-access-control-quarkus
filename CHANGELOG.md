@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tassonomia tag estesa con `ownership` e `tenant`, verificati dal gate `junit5-tag-check`.
 
 
-- Guida formativa `SECURITY-TESTING-GUIDE.md`: anatomia di un security unit test di autorizzazione, ponte SAST/DAST → unit test, catalogo pattern/anti-pattern, learning path a difficoltà incrementale, matrice di copertura.
+- Guida formativa `SECURITY-UNIT-TEST.md`: anatomia di un security unit test di autorizzazione, ponte SAST/DAST → unit test, catalogo pattern/anti-pattern, learning path a difficoltà incrementale, matrice di copertura.
 - Scenario **Function Level Access Control & verb tampering**: nuova classe `DocResourceFunctionLevelTest` (escalation verticale sulla creazione, verb tampering → 405).
 - Scenario **Mass assignment & Field-Level Authorization**: nuovo endpoint `PUT /doc/person/edit/{uuid}` con `EditPersonRequestDTO`, nuova classe `DocResourceFieldLevelTest` (campi server-controlled non sovrascrivibili, `minRole` modificabile solo da 'admin').
 - Tassonomia tag estesa con `object-level`, `function-level`, `field-level`, verificati dal gate `junit5-tag-check`.
