@@ -13,13 +13,13 @@ Definiamo i gruppi di test con cui vogliamo classificare i nostri test.
 | Tag            | Descrizione                                                 | Status Code atteso |
 |----------------|-------------------------------------------------------------|--------------------|
 | `authorized`   | Test per accessi autorizzati                                | 200, 201           |
-| `unauthorized` | Test per utenti **non autenticati** (JWT mancante o non valido) — *autenticazione* | 401   |
-| `forbidden`    | Test per utenti autenticati **senza i permessi** necessari — *autorizzazione* | 403         |
+| `unauthorized` | Test per utenti **non autenticati** (JWT mancante o non valido) - *autenticazione* | 401   |
+| `forbidden`    | Test per utenti autenticati **senza i permessi** necessari - *autorizzazione* | 403         |
 | `security`     | Tag generico per qualsiasi altro controllo di sicurezza     | vari               |
 
 > 🔑 **401 vs 403**: `401 Unauthorized` risponde a *"chi sei?"* (autenticazione mancante); `403 Forbidden` risponde a *"cosa puoi fare?"* (sei autenticato ma non autorizzato). Questo laboratorio è incentrato sull'**autorizzazione** (403 e classi sotto), non sull'autenticazione.
 
-**Tag per classe di autorizzazione** (OWASP A01 — verificati dal gate, vedi `pom.xml`):
+**Tag per classe di autorizzazione** (OWASP A01 - verificati dal gate, vedi `pom.xml`):
 
 | Tag              | Classe di vulnerabilità                                              |
 |------------------|---------------------------------------------------------------------|

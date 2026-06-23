@@ -55,7 +55,7 @@ accede *nemmeno se admin*.
 
 ## 2. Metodi esposti via OpenAPI (descrizione sintetica)
 
-### `DocResource` — generazione documenti (`/doc`)
+### `DocResource` - generazione documenti (`/doc`)
 
 | Metodo & Path | operationId | Accesso | Descrizione |
 |---------------|-------------|---------|-------------|
@@ -64,7 +64,7 @@ accede *nemmeno se admin*.
 | `GET /doc/example.adoc` | AsciiDocExample | admin | Genera il documento in AsciiDoc |
 | `GET /doc/example.pdf` | PDFExample | admin | Genera il documento in PDF |
 
-### `PersonResource` — gestione persone (`/person`)
+### `PersonResource` - gestione persone (`/person`)
 
 | Metodo & Path | operationId | Accesso | Descrizione |
 |---------------|-------------|---------|-------------|
@@ -74,14 +74,14 @@ accede *nemmeno se admin*.
 | `PUT /person/edit/{uuid}` | editPerson | admin, user | Modifica anagrafica; il campo privilegiato `minRole` è modificabile **solo da admin** (field-level) |
 | `DELETE /person/delete/{uuid}` | deletePerson | admin | Cancella una persona |
 
-### `DemoJwtGeneratorRest` — generazione JWT dimostrativi (`/demo`, solo dev/test)
+### `DemoJwtGeneratorRest` - generazione JWT dimostrativi (`/demo`, solo dev/test)
 
 | Metodo & Path | operationId | Accesso | Descrizione |
 |---------------|-------------|---------|-------------|
 | `GET /demo/{roles}.txt` | adminToken | pubblico (`@PermitAll`) | Token con i soli ruoli indicati (upn fisso `DEMOUSER`) |
-| `GET /demo/office/{office}/{upn}/{roles}.txt` | officeToken | pubblico (`@PermitAll`) | Token con **ufficio** (claim `office`), **upn** e ruoli scelti — per gli scenari multi-tenant |
+| `GET /demo/office/{office}/{upn}/{roles}.txt` | officeToken | pubblico (`@PermitAll`) | Token con **ufficio** (claim `office`), **upn** e ruoli scelti - per gli scenari multi-tenant |
 
-### `PersonalNoteResource` — note personali / ownership (`/doc/note`)
+### `PersonalNoteResource` - note personali / ownership (`/doc/note`)
 
 | Metodo & Path | operationId | Accesso | Descrizione |
 |---------------|-------------|---------|-------------|
@@ -91,7 +91,7 @@ accede *nemmeno se admin*.
 | `PUT /doc/note/{uuid}` | editNote | **solo owner** | Modifica una nota (un admin può leggere ma non modificare) |
 | `DELETE /doc/note/{uuid}` | deleteNote | **solo owner** | Cancella una nota |
 
-### `OfficeDocumentResource` — documenti di ufficio / multi-tenant (`/doc/officedoc`)
+### `OfficeDocumentResource` - documenti di ufficio / multi-tenant (`/doc/officedoc`)
 
 | Metodo & Path | operationId | Accesso | Descrizione |
 |---------------|-------------|---------|-------------|
@@ -106,7 +106,7 @@ accede *nemmeno se admin*.
 > Invarianti trasversali dello scenario di ufficio: **isolamento di tenant assoluto** (un altro ufficio non
 > accede nemmeno se admin) e **anti-enumeration** (uuid inesistente → 403 identico al "non autorizzato").
 
-### `AppointmentResource` — appuntamenti / visibilità multi-parte + regola temporale (`/doc/appointment`)
+### `AppointmentResource` - appuntamenti / visibilità multi-parte + regola temporale (`/doc/appointment`)
 
 | Metodo & Path | operationId | Accesso | Descrizione |
 |---------------|-------------|---------|-------------|
@@ -124,7 +124,7 @@ accede *nemmeno se admin*.
 
 I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'esito atteso.
 
-### Livello 0 — Autenticazione (è *authn*, la base) — `DocResourceSicurezzaTest`
+### Livello 0 - Autenticazione (è *authn*, la base) - `DocResourceSicurezzaTest`
 | Test | Descrizione |
 |------|-------------|
 | `testMarkdown401NoAuthorizationBearer` (401) | Accesso senza token → negato |
@@ -132,7 +132,7 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testUnauthorizedWithWrongJwt` (401) | Token malformato/non valido |
 | `testExpiredJWT` (401) | Token scaduto |
 
-### Livello 1 — RBAC a grana grossa (ruolo sull'endpoint)
+### Livello 1 - RBAC a grana grossa (ruolo sull'endpoint)
 
 **`DocResourceSicurezzaTest`** (generazione documenti)
 | Test | Descrizione |
@@ -154,14 +154,14 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testDeletePersonAdminKoNonEsiste` (403) | `admin` cancella un id inesistente → 403 (uniforme) |
 | `testDeletePersonUserKo` (403) | `user` tenta la cancellazione (admin-only) → escalation verticale negata |
 
-### Livello 2 — Function-level & verb tampering — `PersonResourceFunctionLevelTest`
+### Livello 2 - Function-level & verb tampering - `PersonResourceFunctionLevelTest`
 | Test | Descrizione |
 |------|-------------|
 | `testAddPersonNonAdminKo` (403, parametrico `user`/`guest`) | Qualsiasi non-admin che tenta la creazione → negato |
 | `testVerbTamperingPutOnAddNotAllowed` (405) | `PUT` su un path che dichiara solo `POST` |
 | `testVerbTamperingDeleteOnListNotAllowed` (405) | `DELETE` su un path che dichiara solo `GET` |
 
-### Livello 3 — Data filtering per ruolo (escalation orizzontale)
+### Livello 3 - Data filtering per ruolo (escalation orizzontale)
 
 **`DocResourceSicurezzaTest`** (contenuto del documento)
 | Test | Descrizione |
@@ -175,7 +175,7 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testListPersonsResultKo` (200) | Lista per `user`: esclude la persona admin-only |
 | `testListPersonsResultOk` (200) | Lista per `admin`: include la persona admin-only |
 
-### Livello 4 — Object-level (BOLA/IDOR) & anti-enumeration — `PersonResourceSicurezzaTest`
+### Livello 4 - Object-level (BOLA/IDOR) & anti-enumeration - `PersonResourceSicurezzaTest`
 | Test | Descrizione |
 |------|-------------|
 | `testFindPersonOkAdmin` (200) | L'`admin` accede alla persona con `minRole=admin` |
@@ -183,7 +183,7 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testFindPersonKoForbidden` (403) | Lo `user` su una persona admin-only → negato (BOLA) |
 | `testFindPersonKoNotFound` (403) | Id inesistente → 403 (anti-enumeration: non rivela l'esistenza) |
 
-### Livello 5 — Field-level & mass assignment — `PersonResourceFieldLevelTest`
+### Livello 5 - Field-level & mass assignment - `PersonResourceFieldLevelTest`
 | Test | Descrizione |
 |------|-------------|
 | `testAddPersonIgnoresServerControlledFields` (201) | `uuid`/`id`/`creationDate` inviati dal client vengono ignorati (li genera il server) |
@@ -191,7 +191,7 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testEditPersonUserCanEditAnagraphicFields` (200) | Lo `user` modifica i dati anagrafici; `minRole` resta invariato |
 | `testEditPersonAdminCanChangeMinRole` (200) | L'`admin` può modificare `minRole` |
 
-### Livello 6 — Ownership (dati personali) — `PersonalNoteResourceTest`
+### Livello 6 - Ownership (dati personali) - `PersonalNoteResourceTest`
 | Test | Descrizione |
 |------|-------------|
 | `testOwnerReadsOwnNote` (200) | L'owner legge la propria nota |
@@ -201,7 +201,7 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testNonOwnerAdminCannotEditNote` (403) | L'admin può leggere ma **non** modificare la nota altrui |
 | `testReadNonExistentNote` (403) | Nota inesistente → 403 (anti-enumeration) |
 
-### Livello 7 — Isolamento multi-tenant per ufficio, gerarchia di ruoli, draft/published e sharing — `OfficeDocumentResourceTest`
+### Livello 7 - Isolamento multi-tenant per ufficio, gerarchia di ruoli, draft/published e sharing - `OfficeDocumentResourceTest`
 | Test | Descrizione |
 |------|-------------|
 | `testOwnerReadsOwnDraft` (200) | L'owner legge la propria bozza (DRAFT) |
@@ -218,7 +218,7 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testSharingGrantsCrossOfficeRead` (200) | Un utente di ufficio diverso, se **condiviso**, può leggere |
 | `testNotSharedCrossOfficeForbidden` (403) | Un utente di ufficio diverso **non** condiviso non legge |
 
-### Livello 8 — Visibilità multi-parte, autorizzazione temporale e ownership del creatore — `AppointmentResourceTest`
+### Livello 8 - Visibilità multi-parte, autorizzazione temporale e ownership del creatore - `AppointmentResourceTest`
 | Test | Descrizione |
 |------|-------------|
 | `testCreatorCanView` (200) | Il creatore vede il proprio appuntamento |
@@ -249,10 +249,10 @@ Prova rapida: preset **Bohr** (FISICA/admin) → *Documenti di ufficio* → Read
 
 > Solo dev: in `prod` gli endpoint `/demo*` sono disattivati (`@UnlessBuildProfile("prod")`), quindi la console non può generare token. File statici in `src/main/resources/META-INF/resources/ui/`.
 
-## Appendice — test non di sicurezza (per completezza)
-- `DocResourceTest` — smoke test positivi della generazione documenti (tag `business`/`success`).
-- `DocHelperTest` — unit test del motore di rendering (Fugerit Venus Doc).
-- `DemoJwtGeneratorRestTest` — test dell'endpoint demo di generazione JWT.
-- `DocResourceIT` — riesecuzione in modalità *packaged*/nativa (failsafe, con `-Dnative`).
+## Appendice - test non di sicurezza (per completezza)
+- `DocResourceTest` - smoke test positivi della generazione documenti (tag `business`/`success`).
+- `DocHelperTest` - unit test del motore di rendering (Fugerit Venus Doc).
+- `DemoJwtGeneratorRestTest` - test dell'endpoint demo di generazione JWT.
+- `DocResourceIT` - riesecuzione in modalità *packaged*/nativa (failsafe, con `-Dnative`).
 
 > Nota: i tre unit test (`DocResourceTest`, `DocHelperTest`, `DemoJwtGeneratorRestTest`) non sono eseguiti dal `mvn verify` standard perché privi dei tag in `<groups>` di surefire (vedi `TODO.md` #1/#2). `DocResourceIT` è invece escluso in quanto integration test (failsafe): gira solo con `-Dnative`/`skipITs=false`.

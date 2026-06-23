@@ -1,4 +1,4 @@
-# TODO — Operazioni opzionali (da valutare)
+# TODO - Operazioni opzionali (da valutare)
 
 Elenco di interventi **opzionali**, emersi durante la trasformazione del progetto in riferimento
 formativo per i security unit test sull'autorizzazione. Non sono necessari al funzionamento attuale
@@ -9,7 +9,7 @@ formativo per i security unit test sull'autorizzazione. Non sono necessari al fu
 
 ---
 
-## 1. `DocResourceTest`: allineare alla linea guida "positivo + negativo per metodo" — 🟡
+## 1. `DocResourceTest`: allineare alla linea guida "positivo + negativo per metodo" - 🟡
 
 **Contesto.** Oggi [DocResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceTest.java)
 contiene solo 3 casi positivi (`testMarkdownOk`, `testHtmlOk`, `testAsciiDocOk`, tutti 200), taggati
@@ -28,7 +28,7 @@ test funzionale, distinta dalla suite di sicurezza.
 
 ---
 
-## 2. W1 — Filtro `<groups>` di surefire (test esclusi dall'esecuzione) — 🟡
+## 2. W1 - Filtro `<groups>` di surefire (test esclusi dall'esecuzione) - 🟡
 
 **Contesto.** In [pom.xml](pom.xml) `maven-surefire-plugin` ha
 `<groups>security,unauthorized,forbidden,authorized</groups>`: vengono eseguiti solo i test con almeno
@@ -51,7 +51,7 @@ in [JUNIT-TAG.md](JUNIT-TAG.md) ("Note su test e coverage") e rivista la separaz
 
 ---
 
-## 3. ~~Esercizi TDD su `branch-vulnerable` (varianti vulnerabili + test rossi)~~ — ✅ FATTO
+## 3. ~~Esercizi TDD su `branch-vulnerable` (varianti vulnerabili + test rossi)~~ - ✅ FATTO
 
 **Completato.** Il branch `branch-vulnerable` è stato creato con tutte le vulnerabilità `(1)–(9f)`
 reintrodotte e marcate `// VULNERABILITY: (n)`. Eseguendo `mvn verify -P security` sul branch
@@ -60,7 +60,7 @@ questo branch (`feature/security-testing-training`) o su `main`.
 
 ---
 
-## 4. Estendere la matrice di copertura alle celle mancanti — 🟢
+## 4. Estendere la matrice di copertura alle celle mancanti - 🟢
 
 **Contesto.** La matrice in [SECURITY-UNIT-TEST.md](SECURITY-UNIT-TEST.md) ha celle senza test
 (buoni esercizi di estensione). Esempi:
@@ -73,7 +73,7 @@ Aggiungere i test mancanti, taggati coerentemente, e spuntare le celle nella mat
 
 ---
 
-## 5. Nuance "senior": modello dei ruoli — gerarchia vs set-membership (W7) — 🟡
+## 5. Nuance "senior": modello dei ruoli - gerarchia vs set-membership (W7) - 🟡
 
 **Contesto.** Il filtro `minRole in ?1` in
 [PersonRepository.findByRolesOrderedByName](src/main/java/org/fugerit/java/demo/lab/broken/access/control/persistence/PersonRepository.java)
@@ -85,7 +85,7 @@ l'alternativa (gerarchia esplicita dei ruoli o normalizzazione dei ruoli a monte
 
 ---
 
-## 6. Gate di coverage JaCoCo con soglia minima — 🟢
+## 6. Gate di coverage JaCoCo con soglia minima - 🟢
 
 **Contesto.** È presente la dipendenza `quarkus-jacoco` ma nessuna soglia di copertura imposta
 localmente (solo SonarCloud lato CI). Valutare un'esecuzione `jacoco:check` con soglia minima nel
@@ -93,14 +93,14 @@ localmente (solo SonarCloud lato CI). Valutare un'esecuzione `jacoco:check` con 
 
 ---
 
-## 7. `.github/codeql-config.yml` con query `security-and-quality` — 🟢
+## 7. `.github/codeql-config.yml` con query `security-and-quality` - 🟢
 
 **Contesto.** CodeQL (SAST) gira con le query di default (solo security). Aggiungere una config con il
 set `security-and-quality` allinea il SAST alla narrativa formativa (più finding didattici).
 
 ---
 
-## 8. Doc: arricchire la descrizione della vuln (X) con il deny-by-default — 🟢
+## 8. Doc: arricchire la descrizione della vuln (X) con il deny-by-default - 🟢
 
 **Contesto.** Nel [README.md](README.md) la soluzione della (X) è descritta come "rimuovere il metodo
 `addPersonPut()`". Aggiungere che il **deny-by-default**
@@ -109,7 +109,7 @@ della stessa classe (un endpoint senza annotazione è negato anche se ci si dime
 
 ---
 
-## 9. Test di integrazione nativi per la suite di sicurezza — 🟡
+## 9. Test di integrazione nativi per la suite di sicurezza - 🟡
 
 **Contesto.** L'unico `*IT` presente è
 [DocResourceIT](src/test/java/org/fugerit/java/demo/lab/broken/access/control/DocResourceIT.java)

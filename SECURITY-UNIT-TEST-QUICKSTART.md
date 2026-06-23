@@ -1,18 +1,18 @@
-# Security Unit Test — Quickstart
+# Security Unit Test - Quickstart
 
 > Guida introduttiva per chi si avvicina per la prima volta al testing del Broken Access Control: dall'inquadramento teorico a un primo test funzionante. Per gli scenari completi e i pattern avanzati si rimanda a [SECURITY-UNIT-TEST.md](SECURITY-UNIT-TEST.md).
 
 ---
 
-## Broken Access Control: inquadramento
+## Broken Access Control: contesto
 
-**Broken Access Control (OWASP A01)** si verifica quando un'applicazione non verifica che l'utente autenticato abbia il *diritto* di eseguire una determinata azione su un determinato dato. Casi tipici:
+**Broken Access Control (OWASP A01)** si verifica quando un'applicazione non verifica che l'utente autenticato abbia il *diritto o i permessi* di eseguire una determinata azione su un determinato dato. Casi tipici:
 
 - Un `user` riesce a cancellare una risorsa riservata agli `admin` (escalation verticale di privilegio).
 - Un utente accede ai dati di un altro utente modificando l'UUID nell'URL (BOLA/IDOR).
 - Un campo privilegiato (es. `ruolo`) viene modificato dal client senza controllo (mass assignment / field-level authorization).
 
-Un **unit test di autorizzazione** dimostra — in modo automatico e ripetibile — che il controllo *esiste* e *scatta* correttamente.
+Un **unit test di autorizzazione** dimostra - in modo automatico e ripetibile - che il controllo *esiste* e *scatta* correttamente.
 
 ---
 
@@ -23,7 +23,7 @@ Un **unit test di autorizzazione** dimostra — in modo automatico e ripetibile 
 - Due identità distinte: una *autorizzata* e una *non autorizzata*.
 
 ```xml
-<!-- pom.xml — già incluse nel progetto -->
+<!-- pom.xml - già incluse nel progetto -->
 <dependency>
   <groupId>io.quarkus</groupId>
   <artifactId>quarkus-test-security</artifactId>
@@ -136,7 +136,7 @@ Nel report del gate (`target/executed-test-tag-report.html`) risulteranno esegui
 `@TestSecurity` è la scelta appropriata per scenari **mono-identità**. Quando il test richiede **più identità in sequenza** (es. un admin crea una risorsa, poi un user prova a modificarla), è necessario utilizzare JWT reali:
 
 ```java
-// Token con ruolo singolo — la causa del 403 è il ruolo, non il JWT
+// Token con ruolo singolo - la causa del 403 è il ruolo, non il JWT
 String token = DemoJwtGeneratorRest.generateToken("NONADMIN", "user");
 
 given()
@@ -154,7 +154,7 @@ I tag seguenti sono **obbligatori**: la loro assenza causa il fallimento di `mvn
 
 | Tag | Quando applicarlo |
 |-----|-------------------|
-| `security` | Su **ogni** test di autorizzazione — è il gruppo primario |
+| `security` | Su **ogni** test di autorizzazione - è il gruppo primario |
 | `authorized` | Esito positivo (200/201) |
 | `forbidden` | Esito 403 |
 | `unauthorized` | Esito 401 (token mancante o non valido) |
@@ -182,6 +182,6 @@ I tag seguenti sono **obbligatori**: la loro assenza causa il fallimento di `mvn
 | Argomento | Riferimento |
 |-----------|-------------|
 | Scenari completi con codice (BOLA, field-level, ownership, multi-tenant, temporal) | [SECURITY-UNIT-TEST.md](SECURITY-UNIT-TEST.md) |
-| Catalogo dei test esistenti per livello di difficoltà | [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) — Sezione 3 |
+| Catalogo dei test esistenti per livello di difficoltà | [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) - Sezione 3 |
 | Architettura del progetto e comandi Maven | [README.md](README.md) |
-| Avvio e utilizzo delle API in dev (Swagger UI, console didattica) | [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) — Sezione 1 |
+| Avvio e utilizzo delle API in dev (Swagger UI, console didattica) | [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) - Sezione 1 |
