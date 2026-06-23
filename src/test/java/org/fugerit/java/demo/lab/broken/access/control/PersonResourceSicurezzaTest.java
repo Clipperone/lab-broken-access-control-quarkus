@@ -60,9 +60,8 @@ class PersonResourceSicurezzaTest {
         log.info("responseBody : {}", responseBody);
     }
 
-    // VULNERABILITY: (4) risolvi questa vulnerabilità in modo che il caso di test funzioni.
     @Test
-    @DisplayName("VULNERABILITY: (4) - (403) trova persona con ruolo NON autorizzato, ruolo utente 'user' e 'guest'.")
+    @DisplayName("(403) trova persona con ruolo NON autorizzato, ruolo utente 'user' e 'guest'.")
     @Tag("security")
     @Tag("forbidden")
     @Tag("object-level")
@@ -85,9 +84,8 @@ class PersonResourceSicurezzaTest {
                 .statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
-    // VULNERABILITY: (2) risolvi questa vulnerabilità in modo che il caso di test funzioni.
     @Test
-    @DisplayName("VULNERABILITY: (2) B - (200) Lista persona con ruolo 'user', non trova utenti per cui serve 'admin'.")
+    @DisplayName("(200) Lista persona con ruolo 'user', non trova utenti per cui serve 'admin'.")
     @Tag("security")
     @Tag("authorized")
     @TestSecurity(user = "USER1", roles = { "guest", "user" })
@@ -162,9 +160,8 @@ class PersonResourceSicurezzaTest {
                 .statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
-    // VULNERABILITY: (3) risolvi questa vulnerabilità in modo che il caso di test funzioni.
     @Test
-    @DisplayName("VULNERABILITY: (3) - (403) Utente 'user' impedita cancellazione di un utente.")
+    @DisplayName("(403) Utente 'user' impedita cancellazione di un utente.")
     @Tag("security")
     @Tag("forbidden")
     @TestSecurity(user = "USER1", roles = { "user" })

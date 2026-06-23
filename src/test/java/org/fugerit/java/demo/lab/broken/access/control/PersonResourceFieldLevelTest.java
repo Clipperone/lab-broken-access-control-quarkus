@@ -1,15 +1,15 @@
 package org.fugerit.java.demo.lab.broken.access.control;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.restassured.http.ContentType;
-import jakarta.ws.rs.core.Response;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import io.quarkus.test.junit.QuarkusTest;
 import static io.restassured.RestAssured.given;
+import io.restassured.http.ContentType;
+import jakarta.ws.rs.core.Response;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * ESEMPIO DI RIFERIMENTO — Mass Assignment & Field-Level Authorization (OWASP A01).
@@ -52,15 +52,16 @@ class PersonResourceFieldLevelTest {
     @Tag("field-level")
     void testAddPersonIgnoresServerControlledFields() {
         String attackerUuid = "00000000-dead-beef-0000-000000000000";
-        // over-posting: includo campi che il DTO di richiesta NON espone
+        // includo campi che il DTO di richiesta NON espone
         String maliciousBody = "{\"firstName\": \"LISE\",\"lastName\": \"MEITNER\",\"title\": \"Fisica\",\"minRole\": \"guest\","
                 + "\"uuid\": \"" + attackerUuid + "\",\"id\": 999999,\"creationDate\": \"2000-01-01T00:00:00\"}";
-        String returnedUuid = given()
-                .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateAdminToken())
-                .body(maliciousBody).contentType(ContentType.JSON).accept(ContentType.JSON)
+        String returnedUuid = 
+                given()
+                        .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateAdminToken())
+                        .body(maliciousBody).contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().post("/person/add")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
-                .extract().path("uuid");
+                        .extract().path("uuid");
         log.info("testAddPersonIgnoresServerControlledFields returnedUuid : {}", returnedUuid);
         Assertions.assertNotEquals(attackerUuid, returnedUuid,
                 "L'uuid deve essere generato dal server, non accettato dal body (mass assignment)");
@@ -82,8 +83,8 @@ class PersonResourceFieldLevelTest {
                 .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateUserToken())
                 .body("{\"firstName\": \"ROSALIND\",\"lastName\": \"FRANKLIN\",\"title\": \"Chimica\",\"minRole\": \"admin\"}")
                 .contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().put("/person/edit/%s".formatted(uuid))
-                .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
+        .when().put("/person/edit/%s".formatted(uuid))
+        .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
     @Test
@@ -95,14 +96,15 @@ class PersonResourceFieldLevelTest {
         String uuid = createPersonAsAdmin(
                 "{\"firstName\": \"ROSALIND\",\"lastName\": \"FRANKLIN\",\"title\": \"Chimica\",\"minRole\": \"guest\"}");
         // request SENZA minRole: modifica consentita, il campo privilegiato non viene toccato
-        String minRoleDopo = given()
-                .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateUserToken())
-                .body("{\"firstName\": \"ROSALIND ELSIE\",\"lastName\": \"FRANKLIN\",\"title\": \"Biofisica\"}")
-                .contentType(ContentType.JSON).accept(ContentType.JSON)
+        String minRoleDopo = 
+                given()
+                        .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateUserToken())
+                        .body("{\"firstName\": \"ROSALIND ELSIE\",\"lastName\": \"FRANKLIN\",\"title\": \"Biofisica\"}")
+                        .contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().put("/person/edit/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode())
-                .body("title", org.hamcrest.Matchers.equalTo("Biofisica"))
-                .extract().path("minRole");
+                        .body("title", org.hamcrest.Matchers.equalTo("Biofisica"))
+                        .extract().path("minRole");
         Assertions.assertEquals("guest", minRoleDopo,
                 "minRole non deve cambiare per effetto di una modifica fatta da un 'user'");
     }
