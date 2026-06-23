@@ -45,9 +45,8 @@ class DocResourceSicurezzaTest {
         given().when().get("/doc/example.pdf").then().statusCode(Response.Status.OK.getStatusCode());
     }
 
-    // VULNERABILITY: (5) risolvi questa vulnerabilità in modo che il caso di test funzioni.
     @Test
-    @DisplayName("VULNERABILITY: (5) - (401) generazione documento, formato MarkDown con utente non valido, nessun ruolo associato.")
+    @DisplayName("(401) generazione documento, formato MarkDown con utente non valido, nessun ruolo associato.")
     @Tag("security")
     @Tag("unauthorized")
     @Tag("TestSecurity")
@@ -93,9 +92,8 @@ class DocResourceSicurezzaTest {
         Assertions.assertTrue(requestBody.contains("Feynman"));
     }
 
-    // VULNERABILITY: (2) risolvi questa vulnerabilità in modo che il caso di test funzioni.
     @Test
-    @DisplayName("VULNERABILITY: (2) A - (200) generazione documento, formato MarkDown con utente che NON ha i ruoli per vedere tutti i risultati, ruolo utente 'user' e 'guest'.")
+    @DisplayName("(200) generazione documento, formato MarkDown con utente che NON ha i ruoli per vedere tutti i risultati, ruolo utente 'user' e 'guest'.")
     @Tag("security")
     @Tag("success")
     @Tag("Bearer")

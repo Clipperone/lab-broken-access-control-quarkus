@@ -15,7 +15,6 @@ import org.eclipse.microprofile.openapi.annotations.enums.SecuritySchemeType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.fugerit.java.demo.lab.broken.access.control.dto.AddPersonRequestDTO;
@@ -70,8 +69,6 @@ public class PersonResource {
         response.setCreationDate(person.getCreationDate());
         return Response.status(Response.Status.CREATED).entity(response).build();
     }
-
-    // SOLUTION: (X), una put senza controllo di autorizzazione è rimasta abilitata per errore, rimuoviamo totalmente il metodo addPersonPut()
 
     @APIResponse(responseCode = "200", description = "La persona è stata creata", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = AddPersonResponseDTO.class)))
     @APIResponse(responseCode = "401", description = "Se l'autenticazione non è presente")
