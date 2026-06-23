@@ -13,9 +13,9 @@ Questi test **complementano, non sostituiscono**, SAST e DAST: SAST/DAST aiutano
   - [Scopo e approccio](#scopo-e-approccio)
   - [Autenticazione vs Autorizzazione (401 vs 403)](#autenticazione-vs-autorizzazione-401-vs-403)
   - [Struttura di uno Unit Test per il controllo autorizzativo](#struttura-di-uno-unit-test-per-il-controllo-autorizzativo)
-    - [given — prepara stato, dati e identità](#given--prepara-stato-dati-e-identità)
-    - [when — esegue la singola azione sotto esame](#when--esegue-la-singola-azione-sotto-esame)
-    - [then — verifica esito ed effetto reale](#then--verifica-esito-ed-effetto-reale)
+    - [given - prepara stato, dati e identità](#given--prepara-stato-dati-e-identità)
+    - [when - esegue la singola azione sotto esame](#when--esegue-la-singola-azione-sotto-esame)
+    - [then - verifica esito ed effetto reale](#then--verifica-esito-ed-effetto-reale)
   - [Pattern \& anti-pattern](#pattern--anti-pattern)
     - [Scelta del token factory](#scelta-del-token-factory)
     - [Anti-pattern da evitare](#anti-pattern-da-evitare)
@@ -35,7 +35,7 @@ Questi test **complementano, non sostituiscono**, SAST e DAST: SAST/DAST aiutano
 L'obiettivo è fornire dei riferimenti per scrivere, **nel proprio codice applicativo**, test automatici
 che verifichino i controlli autorizzativi. Il laboratorio propone esercizi ed esempi con **complessità incrementale**, per
 fornire riferimenti sia semplici sia complessi da applicare all'interno del proprio codice
-(dai più semplici — function/field-level — ai più articolati — ownership, multi-tenant, temporale:
+(dai più semplici - function/field-level - ai più articolati - ownership, multi-tenant, temporale:
 vedi [Scenari di Broken Access Control e unit test di riferimento](#scenari-di-broken-access-control-e-unit-test-di-riferimento)).
 
 Il focus è l'**autorizzazione**, *non* l'autenticazione.
@@ -53,7 +53,7 @@ Il focus è l'**autorizzazione**, *non* l'autenticazione.
 
 Ogni test di autorizzazione segue lo schema **given / when / then**, espresso in modo fluente con RestAssured:
 
-### given — prepara stato, dati e identità
+### given - prepara stato, dati e identità
 
 Nel blocco `given` si costruisce lo scenario di partenza e si definisce l'identità del soggetto che esegue l'azione.
 
@@ -73,7 +73,7 @@ Nel contesto Quarkus, l'identità può essere simulata in modi diversi:
 
 Il `given` deve rendere il test **deterministico, ripetibile e indipendente dagli altri test**. Evitare dipendenze da dati pre-caricati non controllati o dall'ordine di esecuzione della suite.
 
-### when — esegue la singola azione sotto esame
+### when - esegue la singola azione sotto esame
 
 Nel blocco `when` si esegue una sola azione applicativa o una singola chiamata HTTP verso l'endpoint da verificare.
 
@@ -92,7 +92,7 @@ Regola pratica:
 
 Se servono più azioni per verificare comportamenti diversi, creare test separati. Le eventuali chiamate di setup, ad esempio `createPersonAsAdmin(...)`, sono accettabili purché restino parte del `given` e non siano l'oggetto del test.
 
-### then — verifica esito ed effetto reale
+### then - verifica esito ed effetto reale
 
 Nel blocco `then` si verifica il risultato della decisione autorizzativa. Un test di autorizzazione non deve limitarsi a verificare che l’endpoint restituisca lo status HTTP atteso. Deve anche verificare che l’effetto reale sui dati sia coerente con la decisione autorizzativa: nessuna modifica non consentita, nessuna esposizione di dati fuori perimetro, nessun campo protetto alterato dal client e nessun side effect parziale nei casi di accesso negato.
 
@@ -100,8 +100,8 @@ Nel blocco `then` si verifica il risultato della decisione autorizzativa. Un tes
 
 Un test ben fatto contiene **due assert complementari**, che rispondono a due domande diverse:
 
-1. **Lo *status* HTTP è quello atteso?** (`200`, `403`, `401`, `405`…). Dimostra che il *meccanismo* di controllo si è attivato e ha deciso come previsto — ad esempio un `403 Forbidden` quando un ruolo insufficiente prova un'azione riservata.
-2. **L'*effetto* sui dati è corretto?** (corpo della risposta, stato persistito, contenuto delle liste). Lo status da solo può mentire: un endpoint potrebbe rispondere `200` e **comunque** aver applicato una modifica privilegiata o aver incluso dati riservati nella risposta. Per questo si verifica anche l'effetto reale — che il campo protetto sia *rimasto invariato*, che la lista *non contenga* i record fuori dal cono di visibilità, che owner/ufficio/stato siano quelli decisi dal server.
+1. **Lo *status* HTTP è quello atteso?** (`200`, `403`, `401`, `405`…). Dimostra che il *meccanismo* di controllo si è attivato e ha deciso come previsto - ad esempio un `403 Forbidden` quando un ruolo insufficiente prova un'azione riservata.
+2. **L'*effetto* sui dati è corretto?** (corpo della risposta, stato persistito, contenuto delle liste). Lo status da solo può mentire: un endpoint potrebbe rispondere `200` e **comunque** aver applicato una modifica privilegiata o aver incluso dati riservati nella risposta. Per questo si verifica anche l'effetto reale - che il campo protetto sia *rimasto invariato*, che la lista *non contenga* i record fuori dal cono di visibilità, che owner/ufficio/stato siano quelli decisi dal server.
 
 In breve: lo *status* certifica che il controllo è scattato, l'*effetto* certifica che ha prodotto la conseguenza giusta. Saltare il secondo assert è l'errore più comune e lascia passare proprio le vulnerabilità di Broken Access Control che vogliamo intercettare.
 
@@ -169,8 +169,8 @@ Regola pratica:
 - ❌ Demandare il controllo autorizzativo al frontend.
 
 **Dettagli architetturali:**
-- Il laboratorio implementa un **modello dei ruoli *set-membership*, non è implementata una gerarchia.** L'autorizzazione object-level confronta `securityIdentity.getRoles().contains(person.getMinRole())`: l'oggetto dichiara *un* ruolo richiesto (`minRole`) e l'accesso passa solo se quel ruolo è **presente nell'insieme** dei ruoli dell'utente. Non c'è alcun "≥": avere `admin` non implica di per sé soddisfare un `minRole = user`. In pratica funziona solo se i token sono coniati in modo **cumulativo** (`generateAdminToken` → `{admin, user, guest}`); un token con il solo `admin` *non* vedrebbe un oggetto con `minRole = user`. Dove serve davvero una gerarchia ordinata (`guest < user < admin`) la si modella esplicitamente con `RoleHierarchy.java` [RoleHierarchy](src/main/java/org/fugerit/java/demo/lab/broken/access/control/security/RoleHierarchy.java), come nello scenario multi-tenant — non la si dà per scontata.
-- **Separa i DTO per ruolo e per direzione.** Non riusare la stessa classe per input e output né per tutti i livelli di privilegio: un campo privilegiato come `minRole` non dovrebbe nemmeno *comparire* nel contratto di chi non può modificarlo. DTO distinti (request vs response, e per livello di privilegio) chiudono mass assignment e over-posting alla radice, perché il campo sensibile non è proprio bindabile dal client non autorizzato — meglio non esporlo affatto che "ignorarlo" a runtime.
+- Il laboratorio implementa un **modello dei ruoli *set-membership*, non è implementata una gerarchia.** L'autorizzazione object-level confronta `securityIdentity.getRoles().contains(person.getMinRole())`: l'oggetto dichiara *un* ruolo richiesto (`minRole`) e l'accesso passa solo se quel ruolo è **presente nell'insieme** dei ruoli dell'utente. Non c'è alcun "≥": avere `admin` non implica di per sé soddisfare un `minRole = user`. In pratica funziona solo se i token sono coniati in modo **cumulativo** (`generateAdminToken` → `{admin, user, guest}`); un token con il solo `admin` *non* vedrebbe un oggetto con `minRole = user`. Dove serve davvero una gerarchia ordinata (`guest < user < admin`) la si modella esplicitamente con `RoleHierarchy.java` [RoleHierarchy](src/main/java/org/fugerit/java/demo/lab/broken/access/control/security/RoleHierarchy.java), come nello scenario multi-tenant - non la si dà per scontata.
+- **Separa i DTO per ruolo e per direzione.** Non riusare la stessa classe per input e output né per tutti i livelli di privilegio: un campo privilegiato come `minRole` non dovrebbe nemmeno *comparire* nel contratto di chi non può modificarlo. DTO distinti (request vs response, e per livello di privilegio) chiudono mass assignment e over-posting alla radice, perché il campo sensibile non è proprio bindabile dal client non autorizzato - meglio non esporlo affatto che "ignorarlo" a runtime.
 - **Deny-by-default.** Con `quarkus.security.jaxrs.deny-unannotated-endpoints=true` un endpoint privo di annotazione di sicurezza è **negato**, non aperto. È la rete di protezione contro l'"endpoint dimenticato": una rotta nuova, aggiunta senza pensare alla sicurezza, resta inaccessibile finché non dichiari esplicitamente chi può usarla, invece di finire esposta per distrazione.
 ---
 
@@ -180,21 +180,21 @@ Questa sezione descrive gli scenari del laboratorio e le coppie di test più rap
 
 Come leggere ogni scenario:
 
-- **❌ Test negativo** — un'azione illegittima viene **negata** (`403`/`405`/`401`). Dimostra che il controllo esiste e scatta. Il test è **superato** se l'azione non autorizzata non viene eseguita.
-- **✅ Test positivo** — l'azione legittima **funziona** (`200`/`201`) e, dove conta, si verifica anche l'*effetto* (lista filtrata, campo invariato, owner/ufficio impostati dal server). Il test è **superato** se l'azione autorizzata viene eseguita correttamente.
-- **Altri test della suite** — l'elenco completo dei restanti test dello scenario, così la mappa di copertura resta esaustiva anche se il codice è mostrato solo per la coppia rappresentativa. Ogni voce è marcata ✅ (positivo) / ❌ (negativo), prima i positivi poi i negativi, con la classe di controllo e cosa verifica.
+- **❌ Test negativo** - un'azione illegittima viene **negata** (`403`/`405`/`401`). Dimostra che il controllo esiste e scatta. Il test è **superato** se l'azione non autorizzata non viene eseguita.
+- **✅ Test positivo** - l'azione legittima **funziona** (`200`/`201`) e, dove conta, si verifica anche l'*effetto* (lista filtrata, campo invariato, owner/ufficio impostati dal server). Il test è **superato** se l'azione autorizzata viene eseguita correttamente.
+- **Altri test della suite** - l'elenco completo dei restanti test dello scenario, così la mappa di copertura resta esaustiva anche se il codice è mostrato solo per la coppia rappresentativa. Ogni voce è marcata ✅ (positivo) / ❌ (negativo), prima i positivi poi i negativi, con la classe di controllo e cosa verifica.
 
 Tabella-indice (classe OWASP A01 × caso d'uso × coppia di test):
 
 | Scenario / Endpoint | Classe/i A01 | Cosa verificare | Esito | Test ❌ / ✅ |
 |---|---|---|---|---|
-| Generazione documenti — `GET /doc/example.{md,html,adoc,pdf}` | function-level + field-level (filtro contenuti) + authn | ruolo richiesto per formato; contenuto filtrato per ruolo; token valido | `403`, `401`, `200` | `testForbiddenWithJwt` ❌ `testOkMarkDownConVerificaContenutoUser` ✅ |
-| Lettura persone — `GET /person/find/{uuid}`, `GET /person/list` | object-level (BOLA/IDOR) + anti-enumeration + data filtering | Accesso al singolo oggetto secondo `minRole`; lista filtrata | `403`, `200` | `testFindPersonKoForbidden` ❌ `testFindPersonOkUser` ✅ |
-| Creazione/cancellazione persone — `POST /person/add`, `DELETE /person/delete/{uuid}` | function-level (escalation verticale) + verb tampering | Solo l' `admin` crea/cancella; verbo non dichiarato non invocabile | `403`, `405`, `201` | `testAddPersonNonAdminKo` ❌ `testAddPersonAdminOk` ✅ |
-| Modifica persona — `PUT /person/edit/{uuid}` | field-level (`minRole`) + mass assignment | campo privilegiato solo da `admin`; campi server-managed ignorati | `403`, `200` | `testEditPersonUserCannotChangeMinRole` ❌ `testEditPersonUserCanEditAnagraphicFields` ✅ |
-| Note personali — `GET/PUT /doc/note/{uuid}` | ownership | lettura a owner **o** admin; scrittura **solo** owner | `403`, `200` | `testNonOwnerAdminCannotEditNote` ❌ `testAdminReadsAnyNote` ✅ |
-| Documenti d'ufficio — `/doc/officedoc` | tenant isolation + gerarchia ruoli + draft/published + sharing + mass assignment | isolamento per ufficio (anche fra admin); ruolo ≥ owner; bozza solo owner; sharing | `403`, `200` | `testCrossOfficeAdminForbidden` ❌ `testPublishedVisibleToSameOfficeHigherRole` ✅ |
-| Appuntamenti — `/doc/appointment` | tenant/visibilità multi-parte + temporale + ownership + mass assignment | visibile a creatore/destinatario/admin d'ufficio; delete solo creatore e > 24h; move solo creatore | `403`, `200` | `testCreatorDeleteWithin24hForbidden` ❌ `testCreatorDeleteMoreThan24hOk` ✅ |
+| Generazione documenti - `GET /doc/example.{md,html,adoc,pdf}` | function-level + field-level (filtro contenuti) + authn | ruolo richiesto per formato; contenuto filtrato per ruolo; token valido | `403`, `401`, `200` | `testForbiddenWithJwt` ❌ `testOkMarkDownConVerificaContenutoUser` ✅ |
+| Lettura persone - `GET /person/find/{uuid}`, `GET /person/list` | object-level (BOLA/IDOR) + anti-enumeration + data filtering | Accesso al singolo oggetto secondo `minRole`; lista filtrata | `403`, `200` | `testFindPersonKoForbidden` ❌ `testFindPersonOkUser` ✅ |
+| Creazione/cancellazione persone - `POST /person/add`, `DELETE /person/delete/{uuid}` | function-level (escalation verticale) + verb tampering | Solo l' `admin` crea/cancella; verbo non dichiarato non invocabile | `403`, `405`, `201` | `testAddPersonNonAdminKo` ❌ `testAddPersonAdminOk` ✅ |
+| Modifica persona - `PUT /person/edit/{uuid}` | field-level (`minRole`) + mass assignment | campo privilegiato solo da `admin`; campi server-managed ignorati | `403`, `200` | `testEditPersonUserCannotChangeMinRole` ❌ `testEditPersonUserCanEditAnagraphicFields` ✅ |
+| Note personali - `GET/PUT /doc/note/{uuid}` | ownership | lettura a owner **o** admin; scrittura **solo** owner | `403`, `200` | `testNonOwnerAdminCannotEditNote` ❌ `testAdminReadsAnyNote` ✅ |
+| Documenti d'ufficio - `/doc/officedoc` | tenant isolation + gerarchia ruoli + draft/published + sharing + mass assignment | isolamento per ufficio (anche fra admin); ruolo ≥ owner; bozza solo owner; sharing | `403`, `200` | `testCrossOfficeAdminForbidden` ❌ `testPublishedVisibleToSameOfficeHigherRole` ✅ |
+| Appuntamenti - `/doc/appointment` | tenant/visibilità multi-parte + temporale + ownership + mass assignment | visibile a creatore/destinatario/admin d'ufficio; delete solo creatore e > 24h; move solo creatore | `403`, `200` | `testCreatorDeleteWithin24hForbidden` ❌ `testCreatorDeleteMoreThan24hOk` ✅ |
 
 ### 1. Generazione documenti
 
@@ -208,7 +208,7 @@ Il documento è generato a partire dall'elenco persone, sono presenti due contro
 
 Il test negativo verifica il primo controllo (ruolo per formato), il test positivo verifica il secondo (filtro sui contenuti). Altri test della suite coprono anche autenticazione, formati diversi e controprove.
 
-**❌ Test Negativo — function-level (formato riservato):** un utente con ruolo `guest` che chiede il formato PDF riceve `403`. Il ruolo basso non permette l'accesso ad un'azione riservata a un ruolo superiore.
+**❌ Test Negativo - function-level (formato riservato):** un utente con ruolo `guest` che chiede il formato PDF riceve `403`. Il ruolo basso non permette l'accesso ad un'azione riservata a un ruolo superiore.
 
 ```java
 @Test
@@ -223,7 +223,7 @@ void testForbiddenWithJwt() {
 }
 ```
 
-**✅ Test Positivo — field-level:** un ruolo `user` chiede il formato MarkDown, ottiene `200` **e** si verifica che il contenuto **non** includa la persona riservata. La sola verifica dello status non basterebbe, il controllo vero è sull'*effetto* (la stringa "Feynman" assente). Il test `testOkMarkDownConVerificaContenutoAdmin` verifica che l'`admin` invece la veda.
+**✅ Test Positivo - field-level:** un ruolo `user` chiede il formato MarkDown, ottiene `200` **e** si verifica che il contenuto **non** includa la persona riservata. La sola verifica dello status non basterebbe, il controllo vero è sull'*effetto* (la stringa "Feynman" assente). Il test `testOkMarkDownConVerificaContenutoAdmin` verifica che l'`admin` invece la veda.
 
 ```java
 @Test
@@ -242,18 +242,18 @@ void testOkMarkDownConVerificaContenutoUser() {
 ```
 
 **Altri test della suite:**
-- ✅ `testHtmlOkNoAdminRole` — **positivo** (function-level): un `user` genera l'HTML (formato consentito)
-- ✅ `testPdfOkNoAdminRole` — **positivo** (function-level): un `admin` genera il PDF (formato riservato)
-- ✅ `testOkWithJwt` — **positivo**: `admin` via JWT reale sul PDF → 200 (variante con token reale)
-- ✅ `testOkJwtMarkDown` — **positivo**: `guest` via JWT sul MarkDown (formato aperto)
-- ✅ `testOkJwtAsciiDoc` — **positivo**: `admin` via JWT sull'AsciiDoc
-- ✅ `testOkMarkDownConVerificaContenutoAdmin` — **positivo** (controprova field-level): l'`admin` **vede** "Feynman" nel MarkDown, conferma che il filtro sul contenuto non nasconde i dati a chi è autorizzato.
-- ❌ `testMarkdown403NoAdminRole` — **negativo** (function-level): un `user` chiede un formato riservato (PDF)
-- ❌ `testForbiddenJwtAsciiDoc` — **negativo** (function-level): un `guest` chiede l'AsciiDoc, riservato a ruoli superiori
-- ❌ `testUnauthorizedWithoutJwt` — **negativo** (authn): richiesta senza token
-- ❌ `testUnauthorizedWithWrongJwt` — **negativo** (authn): token non valido
-- ❌ `testExpiredJWT` — **negativo** (authn): token scaduto
-- ❌ `testMarkdown401NoAuthorizationBearer` — **negativo** (authn): header `Authorization` assente
+- ✅ `testHtmlOkNoAdminRole` - **positivo** (function-level): un `user` genera l'HTML (formato consentito)
+- ✅ `testPdfOkNoAdminRole` - **positivo** (function-level): un `admin` genera il PDF (formato riservato)
+- ✅ `testOkWithJwt` - **positivo**: `admin` via JWT reale sul PDF → 200 (variante con token reale)
+- ✅ `testOkJwtMarkDown` - **positivo**: `guest` via JWT sul MarkDown (formato aperto)
+- ✅ `testOkJwtAsciiDoc` - **positivo**: `admin` via JWT sull'AsciiDoc
+- ✅ `testOkMarkDownConVerificaContenutoAdmin` - **positivo** (controprova field-level): l'`admin` **vede** "Feynman" nel MarkDown, conferma che il filtro sul contenuto non nasconde i dati a chi è autorizzato.
+- ❌ `testMarkdown403NoAdminRole` - **negativo** (function-level): un `user` chiede un formato riservato (PDF)
+- ❌ `testForbiddenJwtAsciiDoc` - **negativo** (function-level): un `guest` chiede l'AsciiDoc, riservato a ruoli superiori
+- ❌ `testUnauthorizedWithoutJwt` - **negativo** (authn): richiesta senza token
+- ❌ `testUnauthorizedWithWrongJwt` - **negativo** (authn): token non valido
+- ❌ `testExpiredJWT` - **negativo** (authn): token scaduto
+- ❌ `testMarkdown401NoAuthorizationBearer` - **negativo** (authn): header `Authorization` assente
 
 ### 2. Lettura persone
 
@@ -265,7 +265,7 @@ Oltre al ruolo, per essere autorizzato a utilizzare l'endpoint, ogni persona ha 
 - un oggetto fuori dal cono di visibilità è negato (`403`)
 - un oggetto **inesistente** deve dare la **stessa** risposta del non autorizzato (`403`, non `404`) per non rivelare l'esistenza degli id (protezione anti-enumeration).
 
-**❌ Test Negativo — object-level:** un utente con ruolo `user/guest` cerca di accedere ad un dato che per essere visualizzato richiede un ruolo `admin` e riceve `403`.
+**❌ Test Negativo - object-level:** un utente con ruolo `user/guest` cerca di accedere ad un dato che per essere visualizzato richiede un ruolo `admin` e riceve `403`.
 
 ```java
 @Test
@@ -281,7 +281,7 @@ void testFindPersonKoForbidden() {
 }
 ```
 
-**✅ Test Positivo — object-level:** lo stesso `user/guest` accede a una persona dentro il suo cono di visibilità (`minRole` compatibile), ottiene `200` e si verifica l'*effetto* (il dato atteso è nel corpo). Dimostra che il controllo non blocca gli accessi legittimi.
+**✅ Test Positivo - object-level:** lo stesso `user/guest` accede a una persona dentro il suo cono di visibilità (`minRole` compatibile), ottiene `200` e si verifica l'*effetto* (il dato atteso è nel corpo). Dimostra che il controllo non blocca gli accessi legittimi.
 
 ```java
 @Test
@@ -300,10 +300,10 @@ void testFindPersonOkUser() {
 ```
 
 **Altri test della suite (lettura):**
-- ✅ `testFindPersonOkAdmin` — **positivo** (object-level): l'`admin` accede a una persona con `minRole = admin` → (corpo della risposta contiene "Feynman").
-- ✅ `testListPersonsResultKo` — **positivo** (data filtering): un `user` chiama `/person/list` → la lista **non** contiene "Feynman" (il controllo è sull'*effetto*, non sullo status).
-- ✅ `testListPersonsResultOk` — **positivo** (controprova): l'`admin` chiama `/person/list` → la lista **contiene** "Feynman".
-- ❌ `testFindPersonKoNotFound` — **negativo** (anti-enumeration): uuid inesistente → 403, non 404, per non rivelare l'esistenza degli id.
+- ✅ `testFindPersonOkAdmin` - **positivo** (object-level): l'`admin` accede a una persona con `minRole = admin` → (corpo della risposta contiene "Feynman").
+- ✅ `testListPersonsResultKo` - **positivo** (data filtering): un `user` chiama `/person/list` → la lista **non** contiene "Feynman" (il controllo è sull'*effetto*, non sullo status).
+- ✅ `testListPersonsResultOk` - **positivo** (controprova): l'`admin` chiama `/person/list` → la lista **contiene** "Feynman".
+- ❌ `testFindPersonKoNotFound` - **negativo** (anti-enumeration): uuid inesistente → 403, non 404, per non rivelare l'esistenza degli id.
 
 ### 3. Creazione e cancellazione persone
 
@@ -313,7 +313,7 @@ void testFindPersonOkUser() {
 
 Le azioni di modifica (creare, cancellare) sono riservate all'`admin`: un ruolo basso che le invoca è un tentativo di **escalation verticale** e va negato (`403`). In più, un **verbo HTTP non dichiarato** sulla risorsa non deve essere invocabile: JAX-RS risponde `405 Method Not Allowed` come difesa contro il verb tampering.
 
-**❌ Test Negativo — function-level (parametrico):** un'unica prova copre *tutti* i ruoli non-admin. Usa JWT reali (non `@TestSecurity`) perché il ruolo varia per invocazione; ogni token porta **un solo** ruolo non privilegiato, così
+**❌ Test Negativo - function-level (parametrico):** un'unica prova copre *tutti* i ruoli non-admin. Usa JWT reali (non `@TestSecurity`) perché il ruolo varia per invocazione; ogni token porta **un solo** ruolo non privilegiato, così
 il `403` dipende solo dall'assenza di `admin`.
 
 ```java
@@ -330,7 +330,7 @@ void testAddPersonNonAdminKo(String nonAdminRole) {
 }
 ```
 
-**✅ Test Positivo — function-level:** l'`admin` crea la persona e ottiene `201`. Conferma che il controllo non
+**✅ Test Positivo - function-level:** l'`admin` crea la persona e ottiene `201`. Conferma che il controllo non
 blocca chi ha il diritto.
 
 ```java
@@ -350,7 +350,7 @@ void testAddPersonAdminOk() {
 }
 ```
 
-**❌ Test Negativo — verb tampering:** ci si autentica come `admin` (così l'**unica** ragione di rifiuto possibile è il verbo, non l'autorizzazione) e si invoca `PUT` su un path che dichiara solo `POST`: atteso `405`.
+**❌ Test Negativo - verb tampering:** ci si autentica come `admin` (così l'**unica** ragione di rifiuto possibile è il verbo, non l'autorizzazione) e si invoca `PUT` su un path che dichiara solo `POST`: atteso `405`.
 
 ```java
 @Test
@@ -370,10 +370,10 @@ void testVerbTamperingPutOnAddNotAllowed() {
 
 
 **Altri test della suite:**
-- ✅ `testAddDeletePersonAdminOk` *(in PersonResourceSicurezzaTest)* — **positivo**: l'`admin` crea e poi cancella la stessa persona → autorizzato (dato creato nell'esecuzione del test).
-- ❌ `testVerbTamperingDeleteOnListNotAllowed` — **negativo** (verb tampering): `DELETE` su `/person/list` (il metodo dichiara solo `GET`) → metodo non autorizzato
-- ❌ `testDeletePersonUserKo` *(in PersonResourceSicurezzaTest)* — **negativo** (escalation verticale): un `user` prova a cancellare una persona → non autorizzato.
-- ❌ `testDeletePersonAdminKoNonEsiste` *(in PersonResourceSicurezzaTest)* — **negativo** (anti-enumeration): l'`admin` cancella un uuid inesistente → 403, non 404.
+- ✅ `testAddDeletePersonAdminOk` *(in PersonResourceSicurezzaTest)* - **positivo**: l'`admin` crea e poi cancella la stessa persona → autorizzato (dato creato nell'esecuzione del test).
+- ❌ `testVerbTamperingDeleteOnListNotAllowed` - **negativo** (verb tampering): `DELETE` su `/person/list` (il metodo dichiara solo `GET`) → metodo non autorizzato
+- ❌ `testDeletePersonUserKo` *(in PersonResourceSicurezzaTest)* - **negativo** (escalation verticale): un `user` prova a cancellare una persona → non autorizzato.
+- ❌ `testDeletePersonAdminKoNonEsiste` *(in PersonResourceSicurezzaTest)* - **negativo** (anti-enumeration): l'`admin` cancella un uuid inesistente → 403, non 404.
 
 ### 4. Modifica persona
 
@@ -383,7 +383,7 @@ void testVerbTamperingPutOnAddNotAllowed() {
 
 L'autorizzazione non si ferma all'endpoint: anche quando un'azione è consentita, il server **non** deve fidarsi del client per i **campi privilegiati**. Qui un `user` può modificare l'anagrafica, ma **non** il campo `minRole` (che ne alzerebbe la visibilità): è *Field-Level Authorization*. Parallelamente, i campi **server-managed** (`uuid`, `id`, `creationDate`) non devono essere accettati dal body (*mass assignment* / over-posting).
 
-**❌ Test Negativo — field-level:** un `user` tenta di portare `minRole` a `admin` e riceve `403`. Si parte da un
+**❌ Test Negativo - field-level:** un `user` tenta di portare `minRole` a `admin` e riceve `403`. Si parte da un
 dato creato nell'esecuzione del test come admin (`createPersonAsAdmin`).
 
 ```java
@@ -405,7 +405,7 @@ void testEditPersonUserCannotChangeMinRole() {
 }
 ```
 
-**✅ Test Positivo — field-level:** lo stesso utente con ruolo `user` modifica **solo** i campi anagrafici (request senza `minRole`): ottiene `200` e si verifica che `minRole` sia **rimasto invariato** (`"guest"`). Senza controllare l'effetto, una regressione che modifica `minRole` passerebbe inosservata.
+**✅ Test Positivo - field-level:** lo stesso utente con ruolo `user` modifica **solo** i campi anagrafici (request senza `minRole`): ottiene `200` e si verifica che `minRole` sia **rimasto invariato** (`"guest"`). Senza controllare l'effetto, una regressione che modifica `minRole` passerebbe inosservata.
 
 ```java
 @Test
@@ -431,8 +431,8 @@ void testEditPersonUserCanEditAnagraphicFields() {
 ```
 
 **Altri test della suite:**
-- ✅ `testEditPersonAdminCanChangeMinRole` — **positivo** (controprova field-level): l'`admin` **può** portare `minRole` a `admin` → autorizzato con effetto verificato sul valore del campo.
-- ✅ `testAddPersonIgnoresServerControlledFields` — **positivo** (mass assignment): il client invia `uuid`/`id`/`creationDate`, ma il server li **ignora** e genera il proprio uuid → 201 (`assertNotEquals` sull'uuid d'attacco).
+- ✅ `testEditPersonAdminCanChangeMinRole` - **positivo** (controprova field-level): l'`admin` **può** portare `minRole` a `admin` → autorizzato con effetto verificato sul valore del campo.
+- ✅ `testAddPersonIgnoresServerControlledFields` - **positivo** (mass assignment): il client invia `uuid`/`id`/`creationDate`, ma il server li **ignora** e genera il proprio uuid → 201 (`assertNotEquals` sull'uuid d'attacco).
 
 ### 5. Note personali (ownership)
 
@@ -442,7 +442,7 @@ void testEditPersonUserCanEditAnagraphicFields() {
 
 Una nota personale è un dato che ha una ownership: la **lettura** è concessa all'owner **o** a un admin, ma la **scrittura** è riservata **solo** all'owner. La coppia di test più istruttiva non è 403/200 sullo stesso verbo, ma l'**asimmetria read/write** sull'admin: stesso soggetto, esito opposto a seconda dell'azione. owner e identità derivano dal token (JWT reali: EINSTEIN owner, BOHR admin, PLANCK altro utente).
 
-**❌ Test Negativo — scrittura riservata all'owner:** un admin (BOHR) prova a **modificare** la nota di EINSTEIN e riceve `403`. Avere il ruolo admin abilita la lettura, **non** la scrittura del dato altrui.
+**❌ Test Negativo - scrittura riservata all'owner:** un admin (BOHR) prova a **modificare** la nota di EINSTEIN e riceve `403`. Avere il ruolo admin abilita la lettura, **non** la scrittura del dato altrui.
 
 ```java
 @Test
@@ -459,7 +459,7 @@ void testNonOwnerAdminCannotEditNote() {
 }
 ```
 
-**✅ Test Positivo — lettura concessa all'admin:** lo **stesso** admin (BOHR) **legge** la nota di EINSTEIN e ottiene `200`. Messo accanto al test negativo, dimostra che la regola distingue correttamente lettura (owner *o* admin) da
+**✅ Test Positivo - lettura concessa all'admin:** lo **stesso** admin (BOHR) **legge** la nota di EINSTEIN e ottiene `200`. Messo accanto al test negativo, dimostra che la regola distingue correttamente lettura (owner *o* admin) da
 scrittura (solo owner).
 
 ```java
@@ -477,10 +477,10 @@ void testAdminReadsAnyNote() {
 ```
 
 **Altri test della suite:**
-- ✅ `testOwnerReadsOwnNote` — **positivo**: l'owner legge la propria nota → autorizzato `ownerUpn == "EINSTEIN"` (effetto verificato).
-- ✅ `testOwnerCanEditNote` — **positivo**: l'owner modifica la propria nota → autorizzato con effetto verificato sul valore del campo.
-- ❌ `testOtherUserCannotReadNote` — **negativo** (ownership): un utente non-owner e non-admin (PLANCK) prova a leggere la nota altrui → 403.
-- ❌ `testReadNonExistentNote` — **negativo** (anti-enumeration): nota inesistente → 403, indistinguibile dal non autorizzato.
+- ✅ `testOwnerReadsOwnNote` - **positivo**: l'owner legge la propria nota → autorizzato `ownerUpn == "EINSTEIN"` (effetto verificato).
+- ✅ `testOwnerCanEditNote` - **positivo**: l'owner modifica la propria nota → autorizzato con effetto verificato sul valore del campo.
+- ❌ `testOtherUserCannotReadNote` - **negativo** (ownership): un utente non-owner e non-admin (PLANCK) prova a leggere la nota altrui → 403.
+- ❌ `testReadNonExistentNote` - **negativo** (anti-enumeration): nota inesistente → 403, indistinguibile dal non autorizzato.
 
 ### 6. Documenti d'ufficio (multi-tenant)
 
@@ -490,7 +490,7 @@ void testAdminReadsAnyNote() {
 
 Scenario più ricco: l'accesso dipende da **ufficio** (claim `office` nel token), `ruolo ≥ soglia dell'owner` (qui la gerarchia è esplicitata nella classe `RoleHierarchy`), **stato** (una bozza è visibile solo all'owner finché non è pubblicata) e **sharing** esplicito. Regola chiave: l'isolamento per ufficio è **assoluto**, vale **anche tra admin** di uffici diversi. owner/ufficio/stato sono impostati **lato server**, mai dal client.
 
-**❌ Test Negativo — tenant isolation:** un admin di un altro ufficio (MENDELEEV / CHIMICA) prova a leggere un documento pubblicato di FISICA e riceve `403`. Essere admin **non** supera il confine di tenant.
+**❌ Test Negativo - tenant isolation:** un admin di un altro ufficio (MENDELEEV / CHIMICA) prova a leggere un documento pubblicato di FISICA e riceve `403`. Essere admin **non** supera il confine di tenant.
 
 ```java
 @Test
@@ -507,7 +507,7 @@ void testCrossOfficeAdminForbidden() {
 }
 ```
 
-**✅ Test Positivo — stesso ufficio + ruolo ≥ + pubblicato:** dopo la pubblicazione, l'admin **dello stesso ufficio**
+**✅ Test Positivo - stesso ufficio + ruolo ≥ + pubblicato:** dopo la pubblicazione, l'admin **dello stesso ufficio**
 (BOHR / FISICA, ruolo ≥ owner) legge il documento → `200`. Tutte le condizioni (ufficio, ruolo, stato) sono
 soddisfatte.
 
@@ -526,7 +526,7 @@ void testPublishedVisibleToSameOfficeHigherRole() {
 }
 ```
 
-**✅ Test Positivo — mass assignment (owner/ufficio/stato server-side):** il client prova a impostare nel body
+**✅ Test Positivo - mass assignment (owner/ufficio/stato server-side):** il client prova a impostare nel body
 `ownerUpn`/`ownerOffice`/`ownerRole`/`status`, ma il server li **ignora** e usa i valori derivati dal token (owner = chi chiama, ufficio = FISICA, stato = DRAFT). L'effetto è verificato sui campi della risposta.
 
 ```java
@@ -548,16 +548,16 @@ void testMassAssignmentOwnerOfficeIgnored() {
 ```
 
 **Altri test della suite:**
-- ✅ `testOwnerReadsOwnDraft` — **positivo**: l'owner di una nota può leggere la propria bozza → 200 (`status == DRAFT`, `ownerOffice == FISICA`).
-- ✅ `testOwnerCanEdit` — **positivo**: l'owner modifica il proprio documento → 200.
-- ✅ `testOfficeAdminCanEditPublished` — **positivo**: l'admin dello stesso ufficio modifica un documento PUBLISHED → 200.
-- ✅ `testSharingGrantsCrossOfficeRead` — **positivo** (sharing): un utente di ufficio diverso, destinatario di una condivisione esplicita, legge → 200.
-- ❌ `testDraftNotVisibleToOfficeAdmin` — **negativo** (draft): la bozza non è visibile all'admin di ufficio finché non è pubblicata → 403.
-- ❌ `testSameOfficeLowerRoleForbidden` — **negativo** (gerarchia ruoli): stesso ufficio ma ruolo inferiore all'owner (PLANCK/guest) → 403.
-- ❌ `testSameOfficeNonAdminCannotEdit` — **negativo**: stesso ufficio, può leggere (ruolo ≥) ma non è admin → 403 in modifica.
-- ❌ `testCrossOfficeAdminCannotEdit` — **negativo** (tenant isolation): admin di ufficio diverso → 403 anche in modifica.
-- ❌ `testNotSharedCrossOfficeForbidden` — **negativo** (sharing): utente di ufficio diverso senza condivisione → 403.
-- ❌ `testAntiEnumerationNonExistent` — **negativo** (anti-enumeration): uuid inesistente → 403.
+- ✅ `testOwnerReadsOwnDraft` - **positivo**: l'owner di una nota può leggere la propria bozza → 200 (`status == DRAFT`, `ownerOffice == FISICA`).
+- ✅ `testOwnerCanEdit` - **positivo**: l'owner modifica il proprio documento → 200.
+- ✅ `testOfficeAdminCanEditPublished` - **positivo**: l'admin dello stesso ufficio modifica un documento PUBLISHED → 200.
+- ✅ `testSharingGrantsCrossOfficeRead` - **positivo** (sharing): un utente di ufficio diverso, destinatario di una condivisione esplicita, legge → 200.
+- ❌ `testDraftNotVisibleToOfficeAdmin` - **negativo** (draft): la bozza non è visibile all'admin di ufficio finché non è pubblicata → 403.
+- ❌ `testSameOfficeLowerRoleForbidden` - **negativo** (gerarchia ruoli): stesso ufficio ma ruolo inferiore all'owner (PLANCK/guest) → 403.
+- ❌ `testSameOfficeNonAdminCannotEdit` - **negativo**: stesso ufficio, può leggere (ruolo ≥) ma non è admin → 403 in modifica.
+- ❌ `testCrossOfficeAdminCannotEdit` - **negativo** (tenant isolation): admin di ufficio diverso → 403 anche in modifica.
+- ❌ `testNotSharedCrossOfficeForbidden` - **negativo** (sharing): utente di ufficio diverso senza condivisione → 403.
+- ❌ `testAntiEnumerationNonExistent` - **negativo** (anti-enumeration): uuid inesistente → 403.
 
 ### 7. Appuntamenti (visibilità multi-parte e regola temporale)
 
@@ -570,7 +570,7 @@ ufficio** (visibilità *relationship-based*). Su di esso agiscono due controlli 
 creatore può cancellare/spostare) e una regola **temporale** (la cancellazione è consentita solo se mancano **> 24h**
 all'appuntamento). Le date sono calcolate a runtime nel test (`iso(plusHours)`).
 
-**❌ Test Negativo — autorizzazione temporale:** il **creatore** prova a cancellare un appuntamento a **meno di 24h**
+**❌ Test Negativo - autorizzazione temporale:** il **creatore** prova a cancellare un appuntamento a **meno di 24h**
 e riceve `403`. Il diritto esiste (è il creatore), ma la **finestra temporale** lo nega: l'autorizzazione dipende dal
 contesto, non solo dall'identità.
 
@@ -588,7 +588,7 @@ void testCreatorDeleteWithin24hForbidden() {
 }
 ```
 
-**✅ Test Positivo — autorizzazione temporale:** lo **stesso** creatore cancella un appuntamento a **più di 24h**
+**✅ Test Positivo - autorizzazione temporale:** lo **stesso** creatore cancella un appuntamento a **più di 24h**
 (48h) e ottiene `200`. La coppia 12h/48h isola esattamente la regola temporale, a parità di identità e azione.
 
 ```java
@@ -606,16 +606,16 @@ void testCreatorDeleteMoreThan24hOk() {
 ```
 
 **Altri test della suite:**
-- ✅ `testCreatorCanView` — **positivo**: il creatore legge il proprio appuntamento → 200.
-- ✅ `testScientistCanView` — **positivo**: lo scienziato destinatario legge l'appuntamento → 200.
-- ✅ `testOfficeAdminCanView` — **positivo**: l'admin dello stesso ufficio legge l'appuntamento → 200.
-- ✅ `testCreatorCanMove` — **positivo** (ownership): solo il creatore sposta l'appuntamento → 200.
-- ✅ `testCreatorUpnIgnored` — **positivo** (mass assignment): `creatorUpn` inviato dal client è ignorato, il creatore è preso dal token → 201 (`creatorUpn == "EINSTEIN"`).
-- ❌ `testCrossOfficeAdminForbidden` — **negativo** (tenant isolation): admin di un altro ufficio → 403.
-- ❌ `testUnrelatedSameOfficeForbidden` — **negativo**: estraneo dello stesso ufficio (non creatore/destinatario/admin) → 403 (la visibilità è per **relazione**, non per ufficio).
-- ❌ `testNonCreatorCannotDelete` — **negativo** (ownership): un non-creatore (anche il destinatario) prova a cancellare → 403.
-- ❌ `testNonCreatorCannotMove` — **negativo** (ownership): un non-creatore prova a spostare → 403.
-- ❌ `testAntiEnumerationNonExistent` — **negativo** (anti-enumeration): uuid inesistente → 403.
+- ✅ `testCreatorCanView` - **positivo**: il creatore legge il proprio appuntamento → 200.
+- ✅ `testScientistCanView` - **positivo**: lo scienziato destinatario legge l'appuntamento → 200.
+- ✅ `testOfficeAdminCanView` - **positivo**: l'admin dello stesso ufficio legge l'appuntamento → 200.
+- ✅ `testCreatorCanMove` - **positivo** (ownership): solo il creatore sposta l'appuntamento → 200.
+- ✅ `testCreatorUpnIgnored` - **positivo** (mass assignment): `creatorUpn` inviato dal client è ignorato, il creatore è preso dal token → 201 (`creatorUpn == "EINSTEIN"`).
+- ❌ `testCrossOfficeAdminForbidden` - **negativo** (tenant isolation): admin di un altro ufficio → 403.
+- ❌ `testUnrelatedSameOfficeForbidden` - **negativo**: estraneo dello stesso ufficio (non creatore/destinatario/admin) → 403 (la visibilità è per **relazione**, non per ufficio).
+- ❌ `testNonCreatorCannotDelete` - **negativo** (ownership): un non-creatore (anche il destinatario) prova a cancellare → 403.
+- ❌ `testNonCreatorCannotMove` - **negativo** (ownership): un non-creatore prova a spostare → 403.
+- ❌ `testAntiEnumerationNonExistent` - **negativo** (anti-enumeration): uuid inesistente → 403.
 
 ## Checklist: aggiungere un nuovo security test
 

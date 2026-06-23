@@ -23,7 +23,7 @@ Le vulnerabilità di tipo [Broken Access Control](https://owasp.org/Top10/2025/A
 - [Lo scenario](#lo-scenario)
 - [Workflow del laboratorio](#workflow-del-laboratorio)
 - [Vulnerabilità dimostrative](#vulnerabilità-dimostrative)
-  - [🎁 Bonus — Conversione degli ID in UUID](#-bonus--conversione-degli-id-in-uuid)
+  - [🎁 Bonus - Conversione degli ID in UUID](#-bonus--conversione-degli-id-in-uuid)
 - [Architettura della sicurezza](#architettura-della-sicurezza)
 - [📚 Riferimenti rapidi](#-riferimenti-rapidi)
 - [❓ FAQ / Problemi comuni](#-faq--problemi-comuni)
@@ -44,11 +44,11 @@ Il laboratorio copre competenze pratiche su:
 
 ## Due modi di usare il progetto
 
-### 🧪 Percorso 1 — Il laboratorio
+### 🧪 Percorso 1 - Il laboratorio
 
 Parti da `branch-vulnerable`, fai fallire i test e correggi le vulnerabilità **(1)–(9f)** distribuite su `DocResource`, `PersonResource`, `PersonalNoteResource`, `OfficeDocumentResource` e `AppointmentResource`.
 
-### 🏢 Percorso 2 — Riferimento per la Scrittura Unit Test di Sicurezza
+### 🏢 Percorso 2 - Riferimento per la Scrittura Unit Test di Sicurezza
 
 Il progetto è anche un **riferimento per scrivere unit test di sicurezza sui controlli di autorizzazione** (OWASP A01), a complemento degli strumenti SAST/DAST. Sono stati rappresentati vari scenari di riferimento:
 
@@ -64,9 +64,9 @@ Il progetto è anche un **riferimento per scrivere unit test di sicurezza sui co
 
 Documenti dedicati:
 
-- 🚀 **[SECURITY-UNIT-TEST-QUICKSTART.md](SECURITY-UNIT-TEST-QUICKSTART.md)** — *da zero al primo test in 15 minuti*: prerequisiti, esempio completo con codice e spiegazione, cosa fare dopo.
-- 📘 **[SECURITY-UNIT-TEST.md](SECURITY-UNIT-TEST.md)** — *come progettare* i test: struttura di un test di autorizzazione, casi d'uso → unit test, pattern/anti-pattern, matrice di copertura.
-- 🧭 **[GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md)** — onboarding step-by-step, descrizione di tutti i metodi OpenAPI, catalogo dei test dal più basilare al più avanzato, **identità e dati demo** per provare gli scenari a grana fine.
+- 🚀 **[SECURITY-UNIT-TEST-QUICKSTART.md](SECURITY-UNIT-TEST-QUICKSTART.md)** - *da zero al primo test in 15 minuti*: prerequisiti, esempio completo con codice e spiegazione, cosa fare dopo.
+- 📘 **[SECURITY-UNIT-TEST.md](SECURITY-UNIT-TEST.md)** - *come progettare* i test: struttura di un test di autorizzazione, casi d'uso → unit test, pattern/anti-pattern, matrice di copertura.
+- 🧭 **[GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md)** - onboarding step-by-step, descrizione di tutti i metodi OpenAPI, catalogo dei test dal più basilare al più avanzato, **identità e dati demo** per provare gli scenari a grana fine.
 - 🖥️ **Console didattica** su <http://localhost:8080/ui/> (in dev): prova gli scenari dal browser cambiando identità e osservando esito + spiegazione.
 
 ### Stack tecnologico
@@ -583,7 +583,7 @@ Dove (n) è l'id della vulnerabilità introdotta, ad esempio (1) o (9c).
 
 Buon lavoro!
 
-### 🎁 Bonus — Conversione degli ID in UUID
+### 🎁 Bonus - Conversione degli ID in UUID
 
 Come visto nelle [vulnerabilità dimostrative](#vulnerabilità-dimostrative) (1) e (4), l'uso di **ID sequenziali** espone l'applicazione a vulnerabilità di tipo **IDOR** (Insecure Direct Object Reference), rendendo banale per un attaccante enumerare le risorse.
 
@@ -591,7 +591,7 @@ Una buona pratica è sostituire gli ID sequenziali con **UUID** casuali come ide
 
 #### Modifiche necessarie
 
-**1. `PersonRepository.java`** — aggiungere il metodo di ricerca per UUID:
+**1. `PersonRepository.java`** - aggiungere il metodo di ricerca per UUID:
 ```java
 /**
  * Cerca una persona tramite il campo UUID.
@@ -604,7 +604,7 @@ public Person findByUuid(String uuid) {
 }
 ```
 
-**2. `PersonResource.java`** — generare l'UUID alla creazione e usarlo come identificatore nei path:
+**2. `PersonResource.java`** - generare l'UUID alla creazione e usarlo come identificatore nei path:
 
 - Alla creazione della persona, generare un UUID casuale:
 ```java
@@ -629,7 +629,7 @@ DELETE /person/delete/{uuid}
 | Prevedibile | ✅ sì | ❌ no |
 | Sicurezza | ⚠️ bassa | ✅ alta |
 
-> 💡 L'UUID non sostituisce i controlli di autorizzazione — è un ulteriore livello di difesa. Le vulnerabilità (1), (4) del laboratorio devono comunque essere corrette indipendentemente dall'uso degli UUID.
+> 💡 L'UUID non sostituisce i controlli di autorizzazione - è un ulteriore livello di difesa. Le vulnerabilità (1), (4) del laboratorio devono comunque essere corrette indipendentemente dall'uso degli UUID.
 
 ## Architettura della sicurezza
 
