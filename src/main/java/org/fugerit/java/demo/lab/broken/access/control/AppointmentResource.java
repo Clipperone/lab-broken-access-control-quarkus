@@ -41,6 +41,12 @@ public class AppointmentResource {
 
     static final long CANCELLATION_LIMIT_HOURS = 24;
 
+    // orizzonte massimo di prenotazione: non si può prenotare/spostare oltre questo numero di giorni
+    static final long MAX_BOOKING_DAYS = 365;
+
+    // 422 Unprocessable Entity: violazione di regola di business (assente da Response.Status)
+    static final int UNPROCESSABLE_ENTITY = 422;
+
     AppointmentRepository repository;
 
     SecurityIdentity securityIdentity;
@@ -84,6 +90,14 @@ public class AppointmentResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Transactional
     public Response create(@Valid AppointmentRequestDTO request) {
+        // SOLUTION: (9h) orizzonte massimo - regola di business: non si prenota oltre MAX_BOOKING_DAYS giorni
+        if (request.getAppointmentAt().isAfter(LocalDateTime.now().plusDays(MAX_BOOKING_DAYS))) {
+            return Response.status(UNPROCESSABLE_ENTITY).build();
+        }
+        // SOLUTION: (9g) niente doppia prenotazione - stesso scienziato, stesso slot -> 409 Conflict
+        if (this.repository.hasConflict(request.getScientistUpn(), request.getAppointmentAt(), "")) {
+            return Response.status(Response.Status.CONFLICT).build();
+        }
         Appointment a = new Appointment();
         a.setUuid(UUID.randomUUID().toString());
         // ANTI MASS-ASSIGNMENT: il creatore è l'identità autenticata, mai un dato del client
@@ -154,6 +168,14 @@ public class AppointmentResource {
         // solo il creatore può spostare (in qualsiasi momento)
         if (a == null || !isCreator(a)) {
             return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        // SOLUTION: (9h) orizzonte massimo - regola di business: non si sposta oltre MAX_BOOKING_DAYS giorni
+        if (request.getNewAppointmentAt().isAfter(LocalDateTime.now().plusDays(MAX_BOOKING_DAYS))) {
+            return Response.status(UNPROCESSABLE_ENTITY).build();
+        }
+        // SOLUTION: (9g) niente doppia prenotazione - slot di destinazione occupato (escluso sé stesso) -> 409
+        if (this.repository.hasConflict(a.getScientistUpn(), request.getNewAppointmentAt(), a.getUuid())) {
+            return Response.status(Response.Status.CONFLICT).build();
         }
         a.setAppointmentAt(request.getNewAppointmentAt());
         a.persistAndFlush();

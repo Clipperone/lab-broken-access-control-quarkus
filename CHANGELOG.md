@@ -9,11 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Riclassificato il tag di gate **`temporal` → `business-logic`**: la finestra di cancellazione a 24h degli appuntamenti è una regola di business (rilevante per la sicurezza per via dell'enforcement lato server). Aggiornati `pom.xml` (`requiredTags`), i test e la documentazione (`README.md`, `SECURITY-UNIT-TEST.md`, `SECURITY-UNIT-TEST-QUICKSTART.md`, `JUNIT-TAG.md`, `CLAUDE.md`). Nota: il tag `business` (senza trattino) resta riservato ai test funzionali non di sicurezza (`DocResourceTest`).
 - **Refactoring**: estratta `PersonResource` da `DocResource`. Il CRUD persone ora vive in `/person/*` (breaking change: `POST /doc/person/add` → `POST /person/add`, ecc.). `DocResource` mantiene solo `/doc/example.{md,html,adoc,pdf}`. Test rinominati di conseguenza: `DocResourceFieldLevelTest` → `PersonResourceFieldLevelTest`, `DocResourceFunctionLevelTest` → `PersonResourceFunctionLevelTest`, `DocResourceSicurezzaTest` splittato in `DocResourceSicurezzaTest` (`/doc/example.*`) + `PersonResourceSicurezzaTest` (`/person/*`).
 
 ### Added
 
-- Scenario **Appuntamenti** (`/doc/appointment`, `Appointment`): visibilità multi-parte (creatore / scienziato destinatario / admin dello stesso ufficio), **eliminazione solo dal creatore e solo se mancano più di 24h** (autorizzazione temporale), spostamento solo dal creatore, anti-enumeration, creatore server-side. Test: `AppointmentResourceTest`; tag di gate `temporal`. Sezione "Appuntamenti" anche nella console GUI.
+- Scenario **Appuntamenti** (`/doc/appointment`, `Appointment`): visibilità multi-parte (creatore / scienziato destinatario / admin dello stesso ufficio), **eliminazione solo dal creatore e solo se mancano più di 24h** (finestra di cancellazione), spostamento solo dal creatore, anti-enumeration, creatore server-side. Test: `AppointmentResourceTest`. Sezione "Appuntamenti" anche nella console GUI.
+- Classe di test **`business-logic`** (tag di gate) per le regole di business imposte lato server, e relativi scenari sugli appuntamenti: **niente doppia prenotazione** dello stesso scienziato nello stesso slot (409 Conflict, `POST`/`PUT .../move`) e **orizzonte massimo di prenotazione** oltre 1 anno (422 Unprocessable Entity, `POST`/`PUT .../move`). Aggiunto `AppointmentRepository.hasConflict` e un `@AfterEach` di pulizia in `AppointmentResourceTest`.
+- Sfida **(Y)** non coperta dai test: bypass *move-then-delete* della finestra di cancellazione (lo spostamento non ha controllo temporale). Documentata in `README.md` e `SECURITY-UNIT-TEST.md` con soli suggerimenti teorici.
 
 
 - Scenario **Ownership** (`/doc/note`, `PersonalNote`): dati visibili solo a owner o admin, modificabili solo dall'owner. Test: `PersonalNoteResourceTest`.

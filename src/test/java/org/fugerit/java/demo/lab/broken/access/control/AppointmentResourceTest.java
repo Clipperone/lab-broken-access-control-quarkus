@@ -1,10 +1,13 @@
 package org.fugerit.java.demo.lab.broken.access.control;
 
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
+import org.fugerit.java.demo.lab.broken.access.control.persistence.Appointment;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -57,6 +60,15 @@ class AppointmentResourceTest {
                 .when().post("/doc/appointment")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
                 .extract().path("uuid");
+    }
+
+    /**
+     * Ogni test parte da uno stato pulito: necessario per la regola anti-doppia-prenotazione, altrimenti
+     * gli appuntamenti accumulati su slot identici (es. now+48h) collidono tra test diversi.
+     */
+    @AfterEach
+    void cleanup() {
+        QuarkusTransaction.requiringNew().run(() -> Appointment.deleteAll());
     }
 
     // --- Visibilità multi-parte ---
@@ -139,7 +151,7 @@ class AppointmentResourceTest {
     @DisplayName("(200) il creatore elimina un appuntamento a più di 24h")
     @Tag("security")
     @Tag("authorized")
-    @Tag("temporal")
+    @Tag("business-logic")
     void testCreatorDeleteMoreThan24hOk() {
         String uuid = createApptAs(EINSTEIN, 48);
         given().header("Authorization", EINSTEIN)
@@ -151,7 +163,7 @@ class AppointmentResourceTest {
     @DisplayName("(403) il creatore NON può eliminare a meno di 24h dall'appuntamento (regola temporale)")
     @Tag("security")
     @Tag("forbidden")
-    @Tag("temporal")
+    @Tag("business-logic")
     void testCreatorDeleteWithin24hForbidden() {
         String uuid = createApptAs(EINSTEIN, 12);
         given().header("Authorization", EINSTEIN)
@@ -215,6 +227,61 @@ class AppointmentResourceTest {
                 .when().post("/doc/appointment")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
                 .body("creatorUpn", Matchers.equalTo("EINSTEIN"));
+    }
+
+    // --- Business logic: niente doppia prenotazione (9g) ---
+
+    @Test
+    @DisplayName("(409) niente doppia prenotazione: stesso scienziato sullo stesso slot")
+    @Tag("security")
+    @Tag("business-logic")
+    void testDoubleBookingSameSlotConflict() {
+        // lo slot va catturato UNA volta sola e riusato, altrimenti due iso(48) potrebbero differire di un secondo
+        String at = iso(48);
+        given().header("Authorization", EINSTEIN)
+                .body(body("FERMI", "FISICA", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
+                .when().post("/doc/appointment")
+                .then().statusCode(Response.Status.CREATED.getStatusCode());
+        given().header("Authorization", EINSTEIN)
+                .body(body("FERMI", "FISICA", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
+                .when().post("/doc/appointment")
+                .then().statusCode(Response.Status.CONFLICT.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("(201) due appuntamenti per lo stesso scienziato su slot diversi sono consentiti")
+    @Tag("security")
+    @Tag("authorized")
+    @Tag("business-logic")
+    void testDoubleBookingDifferentSlotOk() {
+        createApptAs(EINSTEIN, 48);
+        createApptAs(EINSTEIN, 72);
+    }
+
+    // --- Business logic: orizzonte massimo di prenotazione (9h) ---
+
+    @Test
+    @DisplayName("(422) non si può prenotare oltre l'orizzonte massimo (1 anno)")
+    @Tag("security")
+    @Tag("business-logic")
+    void testCreateBeyondHorizon() {
+        given().header("Authorization", EINSTEIN)
+                .body(body("FERMI", "FISICA", iso(366 * 24))).contentType(ContentType.JSON).accept(ContentType.JSON)
+                .when().post("/doc/appointment")
+                .then().statusCode(422);
+    }
+
+    @Test
+    @DisplayName("(422) non si può spostare un appuntamento oltre l'orizzonte massimo (1 anno)")
+    @Tag("security")
+    @Tag("business-logic")
+    void testMoveBeyondHorizon() {
+        String uuid = createApptAs(EINSTEIN, 48);
+        given().header("Authorization", EINSTEIN)
+                .body("{\"newAppointmentAt\": \"%s\"}".formatted(iso(366 * 24))).contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .when().put("/doc/appointment/%s/move".formatted(uuid))
+                .then().statusCode(422);
     }
 
 }
