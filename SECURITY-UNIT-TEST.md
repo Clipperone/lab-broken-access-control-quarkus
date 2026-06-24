@@ -194,7 +194,7 @@ Tabella-indice (classe OWASP A01 × caso d'uso × coppia di test):
 | Modifica persona - `PUT /person/edit/{uuid}` | field-level (`minRole`) + mass assignment | campo privilegiato solo da `admin`; campi server-managed ignorati | `403`, `200` | `testEditPersonUserCannotChangeMinRole` ❌ `testEditPersonUserCanEditAnagraphicFields` ✅ |
 | Note personali - `GET/PUT /doc/note/{uuid}` | ownership | lettura a owner **o** admin; scrittura **solo** owner | `403`, `200` | `testNonOwnerAdminCannotEditNote` ❌ `testAdminReadsAnyNote` ✅ |
 | Documenti d'ufficio - `/doc/officedoc` | tenant isolation + gerarchia ruoli + draft/published + sharing + mass assignment | isolamento per ufficio (anche fra admin); ruolo ≥ owner; bozza solo owner; sharing | `403`, `200` | `testCrossOfficeAdminForbidden` ❌ `testPublishedVisibleToSameOfficeHigherRole` ✅ |
-| Appuntamenti - `/doc/appointment` | tenant/visibilità multi-parte + business-logic + ownership + mass assignment | visibile a creatore/destinatario/admin d'ufficio; delete solo creatore e > 24h; niente doppia prenotazione (409); orizzonte massimo (422); move solo creatore | `403`, `409`, `422`, `200` | `testCreatorDeleteWithin24hForbidden` ❌ `testCreatorDeleteMoreThan24hOk` ✅ |
+| Appuntamenti - `/doc/appointment` | tenant/visibilità multi-parte + business-logic + ownership + mass assignment (office derivato dallo scienziato) | visibile a creatore/destinatario/admin d'ufficio; delete solo creatore e > 24h; niente doppia prenotazione (409); orizzonte massimo (422); office dal registro scienziati, non dal client; move solo creatore | `403`, `409`, `422`, `200` | `testCreatorDeleteWithin24hForbidden` ❌ `testCreatorDeleteMoreThan24hOk` ✅ |
 
 ### 1. Generazione documenti
 
@@ -624,11 +624,11 @@ in momenti diversi potrebbero differire di un secondo.
 void testDoubleBookingSameSlotConflict() {
     String at = iso(48);
     given().header("Authorization", EINSTEIN)
-            .body(body("FERMI", "FISICA", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
+            .body(body("FERMI", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
             .when().post("/doc/appointment")
             .then().statusCode(Response.Status.CREATED.getStatusCode());
     given().header("Authorization", EINSTEIN)
-            .body(body("FERMI", "FISICA", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
+            .body(body("FERMI", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
             .when().post("/doc/appointment")
             .then().statusCode(Response.Status.CONFLICT.getStatusCode());
 }
@@ -644,9 +644,29 @@ regola vale sullo spostamento (`testMoveBeyondHorizon`).
 @Tag("business-logic")
 void testCreateBeyondHorizon() {
     given().header("Authorization", EINSTEIN)
-            .body(body("FERMI", "FISICA", iso(366 * 24))).contentType(ContentType.JSON).accept(ContentType.JSON)
+            .body(body("FERMI", iso(366 * 24))).contentType(ContentType.JSON).accept(ContentType.JSON)
             .when().post("/doc/appointment")
             .then().statusCode(422);
+}
+```
+
+**❌ Test Negativo - ufficio derivato dallo scienziato (9i):** l'`office` non è più un campo della richiesta: è
+derivato lato server dal **registro scienziati** in base a `scientistUpn` (mai dal client). Over-posting di un
+`office` malevolo → ignorato; l'ufficio risultante è quello dello scienziato. Scienziato sconosciuto → `422`.
+
+```java
+@Test
+@DisplayName("(201) l'ufficio è derivato dallo scienziato: l'office inviato dal client viene IGNORATO")
+@Tag("security")
+@Tag("field-level")
+void testOfficeDerivedFromScientistNotClient() {
+    String malicious = "{\"scientistUpn\": \"FERMI\",\"office\": \"CHIMICA\",\"appointmentAt\": \"%s\",\"subject\": \"x\"}"
+            .formatted(iso(48));
+    given().header("Authorization", EINSTEIN)
+            .body(malicious).contentType(ContentType.JSON).accept(ContentType.JSON)
+            .when().post("/doc/appointment")
+            .then().statusCode(Response.Status.CREATED.getStatusCode())
+            .body("office", Matchers.equalTo("FISICA")); // FERMI è di FISICA nel registro, CHIMICA è ignorato
 }
 ```
 
@@ -663,6 +683,8 @@ void testCreateBeyondHorizon() {
 - ✅ `testCreatorCanMove` - **positivo** (ownership): solo il creatore sposta l'appuntamento → 200.
 - ✅ `testCreatorUpnIgnored` - **positivo** (mass assignment): `creatorUpn` inviato dal client è ignorato, il creatore è preso dal token → 201 (`creatorUpn == "EINSTEIN"`).
 - ✅ `testDoubleBookingDifferentSlotOk` - **positivo** (business-logic): due appuntamenti per lo stesso scienziato su slot **diversi** sono consentiti → 201.
+- ❌ `testUnknownScientistRejected` - **negativo** (9i): scienziato non nel registro → 422.
+- ✅/❌ `testOfficeFollowsScientistNotCreator` - (9i, tenant): LAVOISIER (CHIMICA) prenota FERMI (FISICA) → l'admin FISICA (BOHR) **vede**, l'admin CHIMICA (MENDELEEV) **no**: l'ufficio segue lo scienziato, non il creatore.
 - ❌ `testMoveBeyondHorizon` - **negativo** (business-logic): spostamento oltre l'orizzonte massimo → 422.
 - ❌ `testCrossOfficeAdminForbidden` - **negativo** (tenant isolation): admin di un altro ufficio → 403.
 - ❌ `testUnrelatedSameOfficeForbidden` - **negativo**: estraneo dello stesso ufficio (non creatore/destinatario/admin) → 403 (la visibilità è per **relazione**, non per ufficio).

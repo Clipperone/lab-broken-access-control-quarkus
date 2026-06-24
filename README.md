@@ -296,6 +296,7 @@ Questo laboratorio include numerose vulnerabilità di tipo Broken Access Control
 | (9f) | Accesso a appuntamenti altrui               | IDOR              | `GET /doc/appointment/{uuid}`            |
 | (9g) | Business logic: doppia prenotazione (stesso scienziato/slot) | Business Logic | `POST /doc/appointment`, `PUT .../move` |
 | (9h) | Business logic: orizzonte massimo di prenotazione (> 1 anno) | Business Logic | `POST /doc/appointment`, `PUT .../move` |
+| (9i) | Mass Assignment / tenant: office derivato dallo scienziato (server-side) | Field-level / Tenant | `POST /doc/appointment` (client sets office) |
 | (X) | **Hidden, no test**     | Function-level    | `PUT /person/add`                                 |
 | (Y) | **Hidden, no test** - bypass move-then-delete | Business Logic | `PUT /doc/appointment/{uuid}/move` |
 
@@ -539,6 +540,16 @@ Si riesce a prenotare/spostare un appuntamento troppo in là nel tempo (es. oltr
 
 **Soluzione**: Verificare che `appointmentAt <= now + MAX_BOOKING_DAYS` (qui 365 giorni) e respingere con **422 Unprocessable Entity**
 
+#### (9i) Mass Assignment / Tenant: l'ufficio è derivato dallo scienziato (server-side)
+
+L'`office` di un appuntamento è un input della decisione di autorizzazione (`canView`: l'admin dello stesso ufficio lo vede). Se è preso dal client, un utente può inviare un ufficio arbitrario e far vedere l'appuntamento all'admin di un tenant estraneo (leak) o nasconderlo al proprio (evasione della supervisione).
+
+**Endpoint**: `POST /doc/appointment` (il client invia `office` nel body)
+
+**Problema**: `office` è server-relevant ma preso dal client; inoltre `scientistUpn` è testo libero non validato
+
+**Soluzione**: introdurre un **registro scienziato→ufficio** (entity `Scientist`) e derivare `office` lato server da `scientistUpn` (`a.setOffice(scientist.getOffice())`), ignorando qualunque `office` inviato dal client. Scienziato non nel registro → **422**. Effetto: l'ufficio dell'appuntamento è quello del reparto dello **scienziato** (non del creatore), e l'`office` diventa attendibile.
+
 #### (X) Verb Tampering (Hidden, non coperto da test)
 
 Una PUT senza controllo di autorizzazione è rimasta abilitata per errore.
@@ -583,7 +594,7 @@ Le vulnerabilità sono distribuite su 5 risorse REST, ognuna con test di sicurez
 | [PersonResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/PersonResource.java) | (1), (3), (4), (6), (X) | [PersonResourceSicurezzaTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceSicurezzaTest.java), [PersonResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFunctionLevelTest.java), [PersonResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFieldLevelTest.java) |
 | [PersonalNoteResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResource.java) | (7a)–(7c) | [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java) |
 | [OfficeDocumentResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResource.java) | (8a)–(8f) | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
-| [AppointmentResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResource.java) | (9a)–(9h), (Y) | [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java) |
+| [AppointmentResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResource.java) (+ [ScientistResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/ScientistResource.java), registro scienziato→ufficio) | (9a)–(9i), (Y) | [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java) |
 
 ### Approccio Test-Driven Development
 
