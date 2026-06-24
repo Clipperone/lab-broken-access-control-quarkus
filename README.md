@@ -57,7 +57,7 @@ Il progetto è anche un **riferimento per scrivere unit test di sicurezza sui co
 - **Isolamento multi-tenant per ufficio** (dati visibili solo se claim `office` corrisponde)
 - **Gerarchia di ruoli** (accesso al documento solo se il ruolo di chi cerca di accedere al dato è ≥ del ruolo dell'owner del dato)
 - **Visibilità multi-utente** (gestione appuntamenti, i dati sono visibili solo a: creatore, destinatario o admin di ufficio)
-- **Autorizzazione temporale** (cancellazione di un appuntamento consentita solo al creatore e solo entro 24h prima)
+- **Business logic** (regole di business imposte lato server: finestra di cancellazione > 24h, niente doppia prenotazione dello stesso scienziato/slot, orizzonte massimo di prenotazione)
 - **Verb Tampering** (verbo HTTP non dichiarato rifiutato con 405)
 
 Documenti dedicati:
@@ -269,7 +269,7 @@ Cerca la vulnerabilità (X) che non è coperta dai test. Suggerimenti:
 
 ## Vulnerabilità dimostrative
 
-Questo laboratorio include **15 vulnerabilità** di tipo Broken Access Control, distribuite su vari scenari:
+Questo laboratorio include numerose vulnerabilità di tipo Broken Access Control, distribuite su vari scenari (incluse le sfide nascoste (X) e (Y), non coperte dai test):
 
 | #   | Scenario / Vulnerabilità              | Classificazione   | Endpoint                                              |
 |-----|---------------------------------------|-------------------|-------------------------------------------------------|
@@ -290,13 +290,16 @@ Questo laboratorio include **15 vulnerabilità** di tipo Broken Access Control, 
 | (8f) | Accesso a documenti altrui               | IDOR              | `GET /doc/officedoc/{uuid}`            |
 | (9a) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/appointment/{uuid}` (ufficio diverso)       |
 | (9b) | Over-broad visibility (same office)   | BOLA              | `GET /doc/appointment/{uuid}` (non correlato)         |
-| (9c) | Temporal authorization: Delete window | Temporal          | `DELETE /doc/appointment/{uuid}` (< 24h)              |
+| (9c) | Business logic: finestra di eliminazione (> 24h) | Business Logic | `DELETE /doc/appointment/{uuid}` (< 24h)              |
 | (9d) | Ownership: Non-owner delete/move      | Ownership         | `DELETE /doc/appointment/{uuid}`, `PUT .../move`      |
 | (9e) | Mass Assignment: creatorUpn server-managed | Field-level   | `POST /doc/appointment` (client sets creatorUpn)      |
 | (9f) | Accesso a appuntamenti altrui               | IDOR              | `GET /doc/appointment/{uuid}`            |
+| (9g) | Business logic: doppia prenotazione (stesso scienziato/slot) | Business Logic | `POST /doc/appointment`, `PUT .../move` |
+| (9h) | Business logic: orizzonte massimo di prenotazione (> 1 anno) | Business Logic | `POST /doc/appointment`, `PUT .../move` |
 | (X) | **Hidden, no test**     | Function-level    | `PUT /person/add`                                 |
+| (Y) | **Hidden, no test** - bypass move-then-delete | Business Logic | `PUT /doc/appointment/{uuid}/move` |
 
-> 💡 **Sfida**: La vulnerabilità (X) non è coperta dai test. Riesci a trovarla?
+> 💡 **Sfida**: le vulnerabilità (X) e (Y) non sono coperte dai test. Riesci a trovarle?
 
 ### Descrizione delle vulnerabilità
 
@@ -476,9 +479,9 @@ Un utente dello stesso ufficio, non creatore e non destinatario dell'appuntament
 
 **Soluzione**: Restringere a `creatorUpn == self OR scientistUpn == self OR (admin && stessoUfficio)`
 
-#### (9c) Temporal Authorization: Finestra di eliminazione dell'appuntamento
+#### (9c) Business Logic: Finestra di eliminazione dell'appuntamento (regola temporale)
 
-Il creatore riesce a cancellare un appuntamento entro le 24h prima (quando dovrebbe essere vietato).
+Il creatore riesce a cancellare un appuntamento entro le 24h prima (quando dovrebbe essere vietato). È una regola di **business** la cui rilevanza di sicurezza sta nell'enforcement lato server: il client non deve poterla aggirare.
 
 **Endpoint**: `DELETE /doc/appointment/{uuid}` (cancellazione entro 24h)
 
@@ -516,6 +519,26 @@ Un utente accede agli appuntamenti di altri utenti puntando direttamente all'UUI
 
 **Soluzione**: (1) **Core**: Verificare che l'utente sia creatore, destinatario scientifico o admin dell'ufficio, respingere con 403. (2) **Conseguenza**: Risposta uniforme (sempre 403) per appuntamento inesistente o non autorizzato.
 
+#### (9g) Business Logic: Doppia prenotazione (stesso scienziato, stesso slot)
+
+Lo stesso scienziato viene prenotato due volte nello stesso slot temporale. È un invariante di **business** (uno scienziato non può essere in due appuntamenti contemporaneamente) da imporre lato server.
+
+**Endpoint**: `POST /doc/appointment`, `PUT /doc/appointment/{uuid}/move`
+
+**Problema**: Manca il controllo di conflitto sullo slot; la creazione/spostamento crea una doppia prenotazione
+
+**Soluzione**: Prima di creare/spostare, verificare che non esista già un appuntamento per lo stesso `scientistUpn` nello stesso slot (escludendo sé stesso in caso di spostamento) e respingere con **409 Conflict**
+
+#### (9h) Business Logic: Orizzonte massimo di prenotazione
+
+Si riesce a prenotare/spostare un appuntamento troppo in là nel tempo (es. oltre 1 anno). È una regola di **business** sull'intervallo ammesso, da imporre lato server.
+
+**Endpoint**: `POST /doc/appointment`, `PUT /doc/appointment/{uuid}/move`
+
+**Problema**: Manca il limite superiore sulla data dell'appuntamento
+
+**Soluzione**: Verificare che `appointmentAt <= now + MAX_BOOKING_DAYS` (qui 365 giorni) e respingere con **422 Unprocessable Entity**
+
 #### (X) Verb Tampering (Hidden, non coperto da test)
 
 Una PUT senza controllo di autorizzazione è rimasta abilitata per errore.
@@ -535,11 +558,24 @@ public Response addPersonPut(AddPersonRequestDTO request) {
 }
 ```
 
+#### (Y) Business Logic: bypass move-then-delete della finestra di cancellazione (Hidden, non coperto da test)
+
+La finestra di cancellazione (9c) vieta di eliminare un appuntamento se mancano meno di 24h. Tuttavia lo **spostamento** non ha alcun controllo temporale: un utente con un appuntamento entro le 24h può **spostarlo** oltre le 24h e **poi cancellarlo**, aggirando di fatto la regola.
+
+**Endpoint**: `PUT /doc/appointment/{uuid}/move` seguito da `DELETE /doc/appointment/{uuid}`
+
+**Problema**: il vincolo temporale è applicato solo su `delete`, non su `move`; spostando l'appuntamento si rende nuovamente possibile la cancellazione
+
+**Suggerimenti teorici (sfida, nessuna implementazione fornita)**:
+- applicare lo stesso controllo delle 24h anche allo spostamento, valutato sulla data **corrente** dell'appuntamento (non solo sulla nuova);
+- oppure vietare lo spostamento di un appuntamento che è già entro la finestra di 24h;
+- in generale: una regola di business va imposta su **tutte** le operazioni che possono alterarne i presupposti, non solo su quella più ovvia.
+
 ---
 
 ### Struttura del laboratorio
 
-Le **15 vulnerabilità** sono distribuite su 4 risorse REST, ognuna con test di sicurezza associati:
+Le vulnerabilità sono distribuite su 5 risorse REST, ognuna con test di sicurezza associati:
 
 | Risorsa REST | Vulnerabilità | Test |
 |---|---|---|
@@ -547,7 +583,7 @@ Le **15 vulnerabilità** sono distribuite su 4 risorse REST, ognuna con test di 
 | [PersonResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/PersonResource.java) | (1), (3), (4), (6), (X) | [PersonResourceSicurezzaTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceSicurezzaTest.java), [PersonResourceFunctionLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFunctionLevelTest.java), [PersonResourceFieldLevelTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonResourceFieldLevelTest.java) |
 | [PersonalNoteResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResource.java) | (7a)–(7c) | [PersonalNoteResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/PersonalNoteResourceTest.java) |
 | [OfficeDocumentResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResource.java) | (8a)–(8f) | [OfficeDocumentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/OfficeDocumentResourceTest.java) |
-| [AppointmentResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResource.java) | (9a)–(9f) | [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java) |
+| [AppointmentResource](src/main/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResource.java) | (9a)–(9h), (Y) | [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java) |
 
 ### Approccio Test-Driven Development
 
