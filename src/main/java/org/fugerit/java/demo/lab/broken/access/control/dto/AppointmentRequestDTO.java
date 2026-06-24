@@ -14,8 +14,9 @@ import java.time.LocalDateTime;
  * Richiesta per prenotare un appuntamento.
  *
  * <p>
- * NOTA (anti mass-assignment): il creatore NON è un campo del DTO. {@code creatorUpn} è ricavato
- * dall'identità autenticata lato server; il client sceglie solo scienziato, ufficio, data e oggetto.
+ * NOTA (anti mass-assignment): né il creatore né l'ufficio sono campi del DTO. {@code creatorUpn} è
+ * ricavato dall'identità autenticata; {@code office} è derivato lato server dal registro degli scienziati
+ * in base allo {@code scientistUpn} (mai dal client). Il client sceglie solo scienziato, data e oggetto.
  * </p>
  */
 @Getter
@@ -27,11 +28,6 @@ public class AppointmentRequestDTO {
     @Size(max = 128, message = "upn dello scienziato troppo lungo")
     @Schema(description = "upn dello scienziato destinatario", examples = { "BOHR" }, required = true)
     private String scientistUpn;
-
-    @NotBlank(message = "L'ufficio è obbligatorio")
-    @Size(max = 128, message = "Nome ufficio troppo lungo")
-    @Schema(description = "ufficio dell'appuntamento", examples = { "FISICA" }, required = true)
-    private String office;
 
     @NotNull(message = "La data dell'appuntamento è obbligatoria")
     @Future(message = "La data dell'appuntamento deve essere nel futuro")

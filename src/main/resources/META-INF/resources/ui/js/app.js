@@ -26,6 +26,22 @@ function currentRoles() {
     return ['admin', 'user', 'guest'].filter((r) => $('role-' + r).checked);
 }
 
+// Popola la tendina degli scienziati dal registro server (GET /scientist/list). L'ufficio dell'appuntamento
+// è derivato lato server dallo scienziato scelto: il client non lo invia più. Fetch diretta (col Bearer)
+// per non aggiungere voci al pannello esiti.
+async function loadScientists() {
+    const sel = $('a-scientist');
+    if (!sel) return;
+    const token = auth.getToken();
+    if (!token) return;
+    try {
+        const res = await fetch('/scientist/list', { headers: { Authorization: 'Bearer ' + token } });
+        if (!res.ok) return;
+        const list = await res.json();
+        sel.innerHTML = list.map((s) => `<option value="${s.upn}">${s.displayName || s.upn} (${s.office})</option>`).join('');
+    } catch (e) { /* registro non disponibile: ignora */ }
+}
+
 async function genToken() {
     try {
         await auth.generate(val('upn') || 'DEMOUSER', val('office'), currentRoles());
@@ -118,9 +134,9 @@ function bind() {
     $('btn-o-pub').onclick = () => call('PUT', '/doc/officedoc/' + enc(val('o-uuid')) + '/publish');
     $('btn-o-share').onclick = () => call('POST', '/doc/officedoc/' + enc(val('o-uuid')) + '/share', { targetUpn: val('o-target') });
 
-    // appuntamenti
+    // appuntamenti (l'ufficio NON si invia: è derivato lato server dallo scienziato)
     const apptBody = () => ({
-        scientistUpn: val('a-scientist'), office: val('a-office'),
+        scientistUpn: val('a-scientist'),
         appointmentAt: val('a-at') || undefined, subject: val('a-subject'),
     });
     $('btn-a-create').onclick = async () => maybeUuid(await call('POST', '/doc/appointment', apptBody()), 'a-uuid');
@@ -130,7 +146,9 @@ function bind() {
     $('btn-a-del').onclick = () => call('DELETE', '/doc/appointment/' + enc(val('a-uuid')));
 
     window.addEventListener('identity-changed', renderIdentity);
+    window.addEventListener('identity-changed', loadScientists);
     renderIdentity();
+    loadScientists();
 }
 
 bind();

@@ -16,6 +16,8 @@ import org.fugerit.java.demo.lab.broken.access.control.dto.AppointmentMoveReques
 import org.fugerit.java.demo.lab.broken.access.control.dto.AppointmentRequestDTO;
 import org.fugerit.java.demo.lab.broken.access.control.persistence.Appointment;
 import org.fugerit.java.demo.lab.broken.access.control.persistence.AppointmentRepository;
+import org.fugerit.java.demo.lab.broken.access.control.persistence.Scientist;
+import org.fugerit.java.demo.lab.broken.access.control.persistence.ScientistRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -49,12 +51,16 @@ public class AppointmentResource {
 
     AppointmentRepository repository;
 
+    ScientistRepository scientistRepository;
+
     SecurityIdentity securityIdentity;
 
     JsonWebToken jwt;
 
-    public AppointmentResource(AppointmentRepository repository, SecurityIdentity securityIdentity, JsonWebToken jwt) {
+    public AppointmentResource(AppointmentRepository repository, ScientistRepository scientistRepository,
+            SecurityIdentity securityIdentity, JsonWebToken jwt) {
         this.repository = repository;
+        this.scientistRepository = scientistRepository;
         this.securityIdentity = securityIdentity;
         this.jwt = jwt;
     }
@@ -94,6 +100,12 @@ public class AppointmentResource {
         if (request.getAppointmentAt().isAfter(LocalDateTime.now().plusDays(MAX_BOOKING_DAYS))) {
             return Response.status(UNPROCESSABLE_ENTITY).build();
         }
+        // SOLUTION: (9i) l'ufficio NON arriva dal client: si deriva dal registro degli scienziati (fonte di
+        // verita server-side). Scienziato inesistente -> 422 (riferimento non valido).
+        Scientist scientist = this.scientistRepository.findByUpn(request.getScientistUpn());
+        if (scientist == null) {
+            return Response.status(UNPROCESSABLE_ENTITY).build();
+        }
         // SOLUTION: (9g) niente doppia prenotazione - stesso scienziato, stesso slot -> 409 Conflict
         if (this.repository.hasConflict(request.getScientistUpn(), request.getAppointmentAt(), "")) {
             return Response.status(Response.Status.CONFLICT).build();
@@ -103,7 +115,8 @@ public class AppointmentResource {
         // ANTI MASS-ASSIGNMENT: il creatore è l'identità autenticata, mai un dato del client
         a.setCreatorUpn(currentUpn());
         a.setScientistUpn(request.getScientistUpn());
-        a.setOffice(request.getOffice());
+        // SOLUTION: (9i) ufficio derivato dallo scienziato (server-side), mai dal client (anti salto di tenant)
+        a.setOffice(scientist.getOffice());
         a.setAppointmentAt(request.getAppointmentAt());
         a.setSubject(request.getSubject());
         a.persistAndFlush();
