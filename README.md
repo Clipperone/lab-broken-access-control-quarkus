@@ -175,11 +175,16 @@ Con i ruoli appropriati, puoi accedere agli endpoint autorizzati.
 
 ![documento generato](./src/docs/image/05-02-document-200.png)
 
-Vedi la [mappatura di ruoli e path](#mappatura-ruoli--permessi--metodo-http) per maggiori dettagli.
+Vedi la [mappatura di ruoli e path](#grana-grossa---autorizzazione-per-ruolo-rbac) per maggiori dettagli.
 
 ## Lo scenario
 
-Nel nostro scenario, abbiamo una base dati popolata e alcuni path disponibili.
+Nel nostro scenario abbiamo una base dati popolata e alcuni endpoint protetti. L'autorizzazione opera su **due grane** complementari:
+
+- **grana grossa** - basata solo sul **ruolo** (RBAC): stabilisce *quale ruolo può invocare quale funzione*;
+- **grana fine** - basata su **attributi, tenant e relazioni**: stabilisce *se quello specifico utente può accedere a quello specifico oggetto, in quel contesto*.
+
+La maggior parte delle vulnerabilità di Broken Access Control nasce nello strato a grana fine, che il solo RBAC non copre.
 
 ### Base dati
 
@@ -196,9 +201,11 @@ Esiste una base dati di persone (sono entità di dominio, non utenti). La tabell
 
 > **NOTA**: Nel nostro DB pre-popolato tutti possono vedere i dati di Margherita Hack e Alan Turing, ma per vedere i dati di Richard Feynman (che sta lavorando al progetto Manhattan), serve il ruolo 'admin'.
 
-### Mappatura ruoli / permessi / metodo http
+### Grana grossa - autorizzazione per ruolo (RBAC)
 
-L'applicazione gestisce 3 ruoli ed espone dei path che generare documenti in diversi formati o modificare i dati del sistema. Non tutti i ruoli sono autorizzati a richiamare ogni path. Ecco la mappa dei permessi:
+L'accesso a un endpoint dipende **solo dal ruolo**, dichiarato con `@RolesAllowed` (con deny-by-default: un endpoint privo di annotazione di sicurezza è negato). Risponde alla domanda *"questo ruolo può invocare questa funzione?"* (livello function-level).
+
+L'applicazione gestisce 3 ruoli ed espone dei path che generano documenti in diversi formati o modificano i dati del sistema. Non tutti i ruoli sono autorizzati a richiamare ogni path. Ecco la mappa dei permessi:
 
 | Path                          | Output      | Ruoli autorizzati  | Metodo http |
 |-------------------------------|-------------|--------------------|-------------|
@@ -224,7 +231,19 @@ L'applicazione gestisce 3 ruoli ed espone dei path che generare documenti in div
 | `user`  | Accesso a MarkDown e HTML          | Vedere Hack e Turing, documenti base        |
 | `guest` | Accesso solo a MarkDown            | Visualizzazione read-only limitata          |
 
-Sono implementati **ulteriori esempi di autorizzazione a grana fine** (note personali, documenti di ufficio, appuntamenti) descritti in [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) (endpoint, regole, identità e dati demo).
+### Grana fine - autorizzazione per attributo, tenant e relazione
+
+Qui il solo ruolo non basta: la decisione dipende anche da **proprietà del dato o dell'utente**. Si aggiungono due dimensioni di identità oltre al ruolo: l'**owner** (`upn` dell'utente) e l'**ufficio** (claim JWT `office`). Risponde alla domanda *"questo specifico utente può accedere a / modificare questo specifico oggetto, in questo contesto?"*.
+
+| Controllo | Endpoint | In sintesi |
+|---|---|---|
+| **Object-level** (`minRole`) | `/person/*` | oltre al ruolo sull'endpoint, serve il ruolo minimo del *singolo* oggetto |
+| **Field-level** | `PUT /person/edit/{uuid}` | il campo privilegiato `minRole` è modificabile solo da `admin` |
+| **Ownership** | `/doc/note` | dato visibile a owner o admin, modificabile **solo dall'owner** |
+| **Tenant per ufficio** | `/doc/officedoc` | isolamento per ufficio (claim `office`) + gerarchia ruoli + draft/published + sharing |
+| **Business-logic + multi-parte** | `/scientist/appointment` | visibilità creatore/destinatario/admin d'ufficio; regole server-side (finestra 24h, no doppia prenotazione, orizzonte massimo) |
+
+Dettaglio completo - endpoint, regole, identità e dati demo - in **[GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md)**.
 
 ## Workflow del laboratorio
 
