@@ -106,17 +106,18 @@ accede *nemmeno se admin*.
 > Invarianti trasversali dello scenario di ufficio: **isolamento di tenant assoluto** (un altro ufficio non
 > accede nemmeno se admin) e **anti-enumeration** (uuid inesistente → 403 identico al "non autorizzato").
 
-### `AppointmentResource` - appuntamenti / visibilità multi-parte + regola temporale (`/doc/appointment`)
+### `AppointmentResource` - appuntamenti / visibilità multi-parte + business-logic (`/doc/appointment`)
 
 | Metodo & Path | operationId | Accesso | Descrizione |
 |---------------|-------------|---------|-------------|
-| `POST /doc/appointment` | createAppointment | autenticato | Prenota un appuntamento; **creatore dal token**, scienziato/ufficio/data dal body |
+| `POST /doc/appointment` | createAppointment | autenticato | Prenota un appuntamento; **creatore dal token**, scienziato/data dal body, **ufficio derivato dallo scienziato** (registro, mai dal client); scienziato ignoto → 422; business-logic: niente doppia prenotazione (409), orizzonte massimo (422) |
 | `GET /doc/appointment/list` | listAppointments | autenticato | Gli appuntamenti visibili al chiamante |
 | `GET /doc/appointment/{uuid}` | readAppointment | creatore, destinatario o admin di ufficio | Legge un appuntamento |
-| `DELETE /doc/appointment/{uuid}` | deleteAppointment | **solo creatore, e solo > 24h prima** | Elimina (regola temporale) |
-| `PUT /doc/appointment/{uuid}/move` | moveAppointment | **solo creatore** | Sposta l'appuntamento |
+| `DELETE /doc/appointment/{uuid}` | deleteAppointment | **solo creatore, e solo > 24h prima** | Elimina (finestra di cancellazione) |
+| `PUT /doc/appointment/{uuid}/move` | moveAppointment | **solo creatore** | Sposta l'appuntamento; business-logic: niente doppia prenotazione (409), orizzonte massimo (422) |
+| `GET /scientist/list` | listScientists | autenticato | Elenco del registro scienziati (upn, ufficio) - alimenta la tendina della console |
 
-> Visibilità **multi-parte**: creatore O scienziato destinatario O admin dello stesso ufficio. L'eliminazione aggiunge una **regola temporale** (delete solo se mancano > 24h).
+> Visibilità **multi-parte**: creatore O scienziato destinatario O admin dello stesso ufficio. L'**ufficio** dell'appuntamento è quello dello **scienziato** (derivato lato server dal registro `Scientist`, mai dal client). Oltre all'ownership valgono regole di **business-logic** imposte lato server: finestra di cancellazione (delete solo se mancano > 24h), niente doppia prenotazione dello stesso scienziato/slot, orizzonte massimo di prenotazione.
 
 ---
 
@@ -218,7 +219,7 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testSharingGrantsCrossOfficeRead` (200) | Un utente di ufficio diverso, se **condiviso**, può leggere |
 | `testNotSharedCrossOfficeForbidden` (403) | Un utente di ufficio diverso **non** condiviso non legge |
 
-### Livello 8 - Visibilità multi-parte, autorizzazione temporale e ownership del creatore - `AppointmentResourceTest`
+### Livello 8 - Visibilità multi-parte, business-logic e ownership del creatore - `AppointmentResourceTest`
 | Test | Descrizione |
 |------|-------------|
 | `testCreatorCanView` (200) | Il creatore vede il proprio appuntamento |
@@ -227,12 +228,19 @@ I test sono organizzati per livello di difficoltà concettuale. Tra parentesi l'
 | `testCrossOfficeAdminForbidden` (403) | L'admin di un altro ufficio non lo vede (isolamento di tenant) |
 | `testUnrelatedSameOfficeForbidden` (403) | Un estraneo dello stesso ufficio non lo vede (visibilità relazionale) |
 | `testAntiEnumerationNonExistent` (403) | Appuntamento inesistente → 403 |
-| `testCreatorDeleteMoreThan24hOk` (200) | Il creatore elimina a più di 24h |
-| `testCreatorDeleteWithin24hForbidden` (403) | Il creatore **non** elimina a meno di 24h (regola temporale) |
+| `testCreatorDeleteMoreThan24hOk` (200) | Il creatore elimina a più di 24h (finestra di cancellazione) |
+| `testCreatorDeleteWithin24hForbidden` (403) | Il creatore **non** elimina a meno di 24h (finestra di cancellazione) |
 | `testNonCreatorCannotDelete` (403) | Un non-creatore (anche il destinatario) non elimina |
 | `testCreatorCanMove` (200) | Il creatore sposta l'appuntamento |
 | `testNonCreatorCannotMove` (403) | Un non-creatore non sposta |
 | `testCreatorUpnIgnored` (201) | `creatorUpn` inviato dal client viene ignorato (mass-assignment) |
+| `testDoubleBookingSameSlotConflict` (409) | Niente doppia prenotazione: stesso scienziato/slot (business-logic) |
+| `testDoubleBookingDifferentSlotOk` (201) | Due appuntamenti su slot diversi sono consentiti (business-logic) |
+| `testCreateBeyondHorizon` (422) | Non si prenota oltre l'orizzonte massimo (business-logic) |
+| `testMoveBeyondHorizon` (422) | Non si sposta oltre l'orizzonte massimo (business-logic) |
+| `testOfficeDerivedFromScientistNotClient` (201) | L'ufficio è derivato dallo scienziato; l'office inviato dal client è ignorato (field-level) |
+| `testUnknownScientistRejected` (422) | Scienziato non nel registro → prenotazione rifiutata |
+| `testOfficeFollowsScientistNotCreator` (200/403) | L'ufficio segue lo scienziato, non il creatore (tenant) |
 
 ---
 

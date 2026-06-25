@@ -1,10 +1,13 @@
 package org.fugerit.java.demo.lab.broken.access.control;
 
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
+import org.fugerit.java.demo.lab.broken.access.control.persistence.Appointment;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -36,6 +39,8 @@ class AppointmentResourceTest {
     private static final String MENDELEEV = bearer(
             DemoJwtGeneratorRest.generateOfficeToken("MENDELEEV", "CHIMICA", "admin", "user", "guest"));
     private static final String PLANCK = bearer(DemoJwtGeneratorRest.generateOfficeToken("PLANCK", "FISICA", "guest"));
+    private static final String LAVOISIER = bearer(
+            DemoJwtGeneratorRest.generateOfficeToken("LAVOISIER", "CHIMICA", "user", "guest"));
 
     private static String bearer(String token) {
         return "Bearer %s".formatted(token);
@@ -45,18 +50,27 @@ class AppointmentResourceTest {
         return LocalDateTime.now().plusHours(plusHours).withNano(0).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
     }
 
-    private static String body(String scientist, String office, String atIso) {
-        return "{\"scientistUpn\": \"%s\",\"office\": \"%s\",\"appointmentAt\": \"%s\",\"subject\": \"colloquio\"}"
-                .formatted(scientist, office, atIso);
+    private static String body(String scientist, String atIso) {
+        // l'ufficio NON è più un campo della richiesta: è derivato lato server dallo scienziato
+        return "{\"scientistUpn\": \"%s\",\"appointmentAt\": \"%s\",\"subject\": \"colloquio\"}".formatted(scientist, atIso);
     }
 
-    /** Crea un appuntamento (scienziato FERMI, ufficio FISICA) tra plusHours ore e ne restituisce l'uuid. */
+    /** Crea un appuntamento (scienziato FERMI -> ufficio FISICA dal registro) tra plusHours ore e ne restituisce l'uuid. */
     private String createApptAs(String auth, long plusHours) {
         return given().header("Authorization", auth)
-                .body(body("FERMI", "FISICA", iso(plusHours))).contentType(ContentType.JSON).accept(ContentType.JSON)
+                .body(body("FERMI", iso(plusHours))).contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().post("/doc/appointment")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
                 .extract().path("uuid");
+    }
+
+    /**
+     * Ogni test parte da uno stato pulito: necessario per la regola anti-doppia-prenotazione, altrimenti
+     * gli appuntamenti accumulati su slot identici (es. now+48h) collidono tra test diversi.
+     */
+    @AfterEach
+    void cleanup() {
+        QuarkusTransaction.requiringNew().run(() -> Appointment.deleteAll());
     }
 
     // --- Visibilità multi-parte ---
@@ -139,7 +153,7 @@ class AppointmentResourceTest {
     @DisplayName("(200) il creatore elimina un appuntamento a più di 24h")
     @Tag("security")
     @Tag("authorized")
-    @Tag("temporal")
+    @Tag("business-logic")
     void testCreatorDeleteMoreThan24hOk() {
         String uuid = createApptAs(EINSTEIN, 48);
         given().header("Authorization", EINSTEIN)
@@ -151,7 +165,7 @@ class AppointmentResourceTest {
     @DisplayName("(403) il creatore NON può eliminare a meno di 24h dall'appuntamento (regola temporale)")
     @Tag("security")
     @Tag("forbidden")
-    @Tag("temporal")
+    @Tag("business-logic")
     void testCreatorDeleteWithin24hForbidden() {
         String uuid = createApptAs(EINSTEIN, 12);
         given().header("Authorization", EINSTEIN)
@@ -215,6 +229,107 @@ class AppointmentResourceTest {
                 .when().post("/doc/appointment")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
                 .body("creatorUpn", Matchers.equalTo("EINSTEIN"));
+    }
+
+    // --- Business logic: niente doppia prenotazione (9g) ---
+
+    @Test
+    @DisplayName("(409) niente doppia prenotazione: stesso scienziato sullo stesso slot")
+    @Tag("security")
+    @Tag("business-logic")
+    void testDoubleBookingSameSlotConflict() {
+        // lo slot va catturato UNA volta sola e riusato, altrimenti due iso(48) potrebbero differire di un secondo
+        String at = iso(48);
+        given().header("Authorization", EINSTEIN)
+                .body(body("FERMI", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
+                .when().post("/doc/appointment")
+                .then().statusCode(Response.Status.CREATED.getStatusCode());
+        given().header("Authorization", EINSTEIN)
+                .body(body("FERMI", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
+                .when().post("/doc/appointment")
+                .then().statusCode(Response.Status.CONFLICT.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("(201) due appuntamenti per lo stesso scienziato su slot diversi sono consentiti")
+    @Tag("security")
+    @Tag("authorized")
+    @Tag("business-logic")
+    void testDoubleBookingDifferentSlotOk() {
+        createApptAs(EINSTEIN, 48);
+        createApptAs(EINSTEIN, 72);
+    }
+
+    // --- Business logic: orizzonte massimo di prenotazione (9h) ---
+
+    @Test
+    @DisplayName("(422) non si può prenotare oltre l'orizzonte massimo (1 anno)")
+    @Tag("security")
+    @Tag("business-logic")
+    void testCreateBeyondHorizon() {
+        given().header("Authorization", EINSTEIN)
+                .body(body("FERMI", iso(366 * 24))).contentType(ContentType.JSON).accept(ContentType.JSON)
+                .when().post("/doc/appointment")
+                .then().statusCode(422);
+    }
+
+    @Test
+    @DisplayName("(422) non si può spostare un appuntamento oltre l'orizzonte massimo (1 anno)")
+    @Tag("security")
+    @Tag("business-logic")
+    void testMoveBeyondHorizon() {
+        String uuid = createApptAs(EINSTEIN, 48);
+        given().header("Authorization", EINSTEIN)
+                .body("{\"newAppointmentAt\": \"%s\"}".formatted(iso(366 * 24))).contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .when().put("/doc/appointment/%s/move".formatted(uuid))
+                .then().statusCode(422);
+    }
+
+    // --- Tenant / field-level: l'ufficio è derivato dallo scienziato, mai dal client (9i) ---
+
+    @Test
+    @DisplayName("(201) l'ufficio è derivato dallo scienziato: l'office inviato dal client viene IGNORATO")
+    @Tag("security")
+    @Tag("field-level")
+    void testOfficeDerivedFromScientistNotClient() {
+        // over-posting: il client tenta di forzare office=CHIMICA, ma FERMI è di FISICA nel registro
+        String malicious = "{\"scientistUpn\": \"FERMI\",\"office\": \"CHIMICA\",\"appointmentAt\": \"%s\",\"subject\": \"x\"}"
+                .formatted(iso(48));
+        given().header("Authorization", EINSTEIN)
+                .body(malicious).contentType(ContentType.JSON).accept(ContentType.JSON)
+                .when().post("/doc/appointment")
+                .then().statusCode(Response.Status.CREATED.getStatusCode())
+                .body("office", Matchers.equalTo("FISICA"));
+    }
+
+    @Test
+    @DisplayName("(422) scienziato non presente nel registro: prenotazione rifiutata")
+    @Tag("security")
+    @Tag("field-level")
+    void testUnknownScientistRejected() {
+        given().header("Authorization", EINSTEIN)
+                .body(body("NONEXISTENT", iso(48))).contentType(ContentType.JSON).accept(ContentType.JSON)
+                .when().post("/doc/appointment")
+                .then().statusCode(422);
+    }
+
+    @Test
+    @DisplayName("(200/403) l'ufficio segue lo scienziato, non il creatore: lo vede l'admin del reparto dello scienziato")
+    @Tag("security")
+    @Tag("tenant")
+    void testOfficeFollowsScientistNotCreator() {
+        // LAVOISIER (CHIMICA) prenota FERMI (FISICA): l'appuntamento è di FISICA (ufficio dello scienziato)
+        String uuid = createApptAs(LAVOISIER, 48);
+        // l'admin di FISICA (BOHR) lo vede: è il reparto dello scienziato
+        given().header("Authorization", BOHR)
+                .when().get("/doc/appointment/%s".formatted(uuid))
+                .then().statusCode(Response.Status.OK.getStatusCode())
+                .body("office", Matchers.equalTo("FISICA"));
+        // l'admin di CHIMICA (MENDELEEV, stesso ufficio del CREATORE) NON lo vede
+        given().header("Authorization", MENDELEEV)
+                .when().get("/doc/appointment/%s".formatted(uuid))
+                .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
 }

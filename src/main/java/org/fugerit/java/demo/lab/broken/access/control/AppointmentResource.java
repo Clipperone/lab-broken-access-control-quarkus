@@ -16,6 +16,8 @@ import org.fugerit.java.demo.lab.broken.access.control.dto.AppointmentMoveReques
 import org.fugerit.java.demo.lab.broken.access.control.dto.AppointmentRequestDTO;
 import org.fugerit.java.demo.lab.broken.access.control.persistence.Appointment;
 import org.fugerit.java.demo.lab.broken.access.control.persistence.AppointmentRepository;
+import org.fugerit.java.demo.lab.broken.access.control.persistence.Scientist;
+import org.fugerit.java.demo.lab.broken.access.control.persistence.ScientistRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,12 +45,16 @@ public class AppointmentResource {
 
     AppointmentRepository repository;
 
+    ScientistRepository scientistRepository;
+
     SecurityIdentity securityIdentity;
 
     JsonWebToken jwt;
 
-    public AppointmentResource(AppointmentRepository repository, SecurityIdentity securityIdentity, JsonWebToken jwt) {
+    public AppointmentResource(AppointmentRepository repository, ScientistRepository scientistRepository,
+            SecurityIdentity securityIdentity, JsonWebToken jwt) {
         this.repository = repository;
+        this.scientistRepository = scientistRepository;
         this.securityIdentity = securityIdentity;
         this.jwt = jwt;
     }
@@ -90,6 +96,10 @@ public class AppointmentResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Transactional
     public Response create(@Valid AppointmentRequestDTO request) {
+        // VULNERABILITY: (9h) manca il controllo dell'ORIZZONTE MASSIMO di prenotazione: una data troppo lontana
+        // (oltre 1 anno) dovrebbe essere respinta con 422. Va ripristinato il check appointmentAt <= now + N giorni.
+        // VULNERABILITY: (9g) manca il controllo ANTI DOPPIA-PRENOTAZIONE: lo stesso scienziato non dovrebbe avere
+        // due appuntamenti nello stesso slot (409). Va ripristinato repository.hasConflict(...).
         Appointment a = new Appointment();
         a.setUuid(UUID.randomUUID().toString());
         // il creatore deriva dall'identità (default server-side)
@@ -100,7 +110,16 @@ public class AppointmentResource {
             a.setCreatorUpn(request.getCreatorUpn());
         }
         a.setScientistUpn(request.getScientistUpn());
-        a.setOffice(request.getOffice());
+        // l'ufficio di default deriva dallo scienziato (registro)
+        Scientist scientist = this.scientistRepository.findByUpn(request.getScientistUpn());
+        a.setOffice(scientist != null ? scientist.getOffice() : null);
+        // VULNERABILITY: (9i) MASS ASSIGNMENT: se il client invia 'office' sovrascrive quello derivato dallo
+        // scienziato (salto di tenant); manca inoltre la validazione (scienziato inesistente dovrebbe dare 422).
+        // La soluzione è derivare SEMPRE l'ufficio dal registro, ignorare l'office del client e respingere lo
+        // scienziato ignoto con 422.
+        if (request.getOffice() != null) {
+            a.setOffice(request.getOffice());
+        }
         a.setAppointmentAt(request.getAppointmentAt());
         a.setSubject(request.getSubject());
         a.persistAndFlush();
@@ -171,6 +190,8 @@ public class AppointmentResource {
         if (a == null) {
             return Response.status(Response.Status.FORBIDDEN).build();
         }
+        // VULNERABILITY: (9h) manca il controllo dell'orizzonte massimo anche sullo spostamento (-> 422).
+        // VULNERABILITY: (9g) manca il controllo anti doppia-prenotazione sullo slot di destinazione (-> 409).
         a.setAppointmentAt(request.getNewAppointmentAt());
         a.persistAndFlush();
         return Response.status(Response.Status.OK).entity(a.toDTO()).build();

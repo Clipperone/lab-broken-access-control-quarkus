@@ -26,7 +26,7 @@ Questi test **complementano, non sostituiscono**, SAST e DAST: SAST/DAST aiutano
     - [4. Modifica persona](#4-modifica-persona)
     - [5. Note personali (ownership)](#5-note-personali-ownership)
     - [6. Documenti d'ufficio (multi-tenant)](#6-documenti-dufficio-multi-tenant)
-    - [7. Appuntamenti (visibilità multi-parte e regola temporale)](#7-appuntamenti-visibilità-multi-parte-e-regola-temporale)
+    - [7. Appuntamenti (visibilità multi-parte e regole di business-logic)](#7-appuntamenti-visibilità-multi-parte-e-regole-di-business-logic)
   - [Checklist: aggiungere un nuovo security test](#checklist-aggiungere-un-nuovo-security-test)
   - [Comandi](#comandi)
 
@@ -35,7 +35,7 @@ Questi test **complementano, non sostituiscono**, SAST e DAST: SAST/DAST aiutano
 L'obiettivo è fornire dei riferimenti per scrivere, **nel proprio codice applicativo**, test automatici
 che verifichino i controlli autorizzativi. Il laboratorio propone esercizi ed esempi con **complessità incrementale**, per
 fornire riferimenti sia semplici sia complessi da applicare all'interno del proprio codice
-(dai più semplici - function/field-level - ai più articolati - ownership, multi-tenant, temporale:
+(dai più semplici - function/field-level - ai più articolati - ownership, multi-tenant, business-logic:
 vedi [Scenari di Broken Access Control e unit test di riferimento](#scenari-di-broken-access-control-e-unit-test-di-riferimento)).
 
 Il focus è l'**autorizzazione**, *non* l'autenticazione.
@@ -194,7 +194,7 @@ Tabella-indice (classe OWASP A01 × caso d'uso × coppia di test):
 | Modifica persona - `PUT /person/edit/{uuid}` | field-level (`minRole`) + mass assignment | campo privilegiato solo da `admin`; campi server-managed ignorati | `403`, `200` | `testEditPersonUserCannotChangeMinRole` ❌ `testEditPersonUserCanEditAnagraphicFields` ✅ |
 | Note personali - `GET/PUT /doc/note/{uuid}` | ownership | lettura a owner **o** admin; scrittura **solo** owner | `403`, `200` | `testNonOwnerAdminCannotEditNote` ❌ `testAdminReadsAnyNote` ✅ |
 | Documenti d'ufficio - `/doc/officedoc` | tenant isolation + gerarchia ruoli + draft/published + sharing + mass assignment | isolamento per ufficio (anche fra admin); ruolo ≥ owner; bozza solo owner; sharing | `403`, `200` | `testCrossOfficeAdminForbidden` ❌ `testPublishedVisibleToSameOfficeHigherRole` ✅ |
-| Appuntamenti - `/doc/appointment` | tenant/visibilità multi-parte + temporale + ownership + mass assignment | visibile a creatore/destinatario/admin d'ufficio; delete solo creatore e > 24h; move solo creatore | `403`, `200` | `testCreatorDeleteWithin24hForbidden` ❌ `testCreatorDeleteMoreThan24hOk` ✅ |
+| Appuntamenti - `/doc/appointment` | tenant/visibilità multi-parte + business-logic + ownership + mass assignment (office derivato dallo scienziato) | visibile a creatore/destinatario/admin d'ufficio; delete solo creatore e > 24h; niente doppia prenotazione (409); orizzonte massimo (422); office dal registro scienziati, non dal client; move solo creatore | `403`, `409`, `422`, `200` | `testCreatorDeleteWithin24hForbidden` ❌ `testCreatorDeleteMoreThan24hOk` ✅ |
 
 ### 1. Generazione documenti
 
@@ -559,19 +559,26 @@ void testMassAssignmentOwnerOfficeIgnored() {
 - ❌ `testNotSharedCrossOfficeForbidden` - **negativo** (sharing): utente di ufficio diverso senza condivisione → 403.
 - ❌ `testAntiEnumerationNonExistent` - **negativo** (anti-enumeration): uuid inesistente → 403.
 
-### 7. Appuntamenti (visibilità multi-parte e regola temporale)
+### 7. Appuntamenti (visibilità multi-parte e regole di business-logic)
 
 - **Endpoint:** `/doc/appointment` (+ `/move`)
 - **Suite:** [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java)
-- **Classi:** tenant/visibilità multi-parte (relationship-based), autorizzazione temporale, ownership, mass assignment
+- **Classi:** tenant/visibilità multi-parte (relationship-based), business-logic (finestra di cancellazione, doppia prenotazione, orizzonte massimo), ownership, mass assignment
 
 Un appuntamento collega più soggetti: è visibile a **creatore**, **scienziato destinatario** e **admin dello stesso
-ufficio** (visibilità *relationship-based*). Su di esso agiscono due controlli ulteriori: l'**ownership** (solo il
-creatore può cancellare/spostare) e una regola **temporale** (la cancellazione è consentita solo se mancano **> 24h**
-all'appuntamento). Le date sono calcolate a runtime nel test (`iso(plusHours)`).
+ufficio** (visibilità *relationship-based*). Su di esso agiscono ulteriori controlli: l'**ownership** (solo il
+creatore può cancellare/spostare) e diverse regole di **business-logic** imposte lato server: la cancellazione è
+consentita solo se mancano **> 24h** all'appuntamento (finestra di cancellazione), non si può creare una **doppia
+prenotazione** per lo stesso scienziato nello stesso slot, e non si può prenotare oltre un **orizzonte massimo**. Le date
+sono calcolate a runtime nel test (`iso(plusHours)`); un `@AfterEach` ripulisce gli appuntamenti tra un test e l'altro.
 
-**❌ Test Negativo - autorizzazione temporale:** il **creatore** prova a cancellare un appuntamento a **meno di 24h**
-e riceve `403`. Il diritto esiste (è il creatore), ma la **finestra temporale** lo nega: l'autorizzazione dipende dal
+> ℹ️ **Esito HTTP delle regole di business-logic:** una violazione di invariante usa **422 Unprocessable Entity**
+> (orizzonte massimo), un conflitto di stato usa **409 Conflict** (doppia prenotazione): volutamente diversi dal **403**
+> dell'autorizzazione, perché è una regola di business, non un permesso. La finestra di cancellazione resta `403` per
+> coerenza con il controllo di ownership che la precede.
+
+**❌ Test Negativo - finestra di cancellazione:** il **creatore** prova a cancellare un appuntamento a **meno di 24h**
+e riceve `403`. Il diritto esiste (è il creatore), ma la **finestra temporale** lo nega: la regola dipende dal
 contesto, non solo dall'identità.
 
 ```java
@@ -579,7 +586,7 @@ contesto, non solo dall'identità.
 @DisplayName("(403) il creatore NON può eliminare a meno di 24h dall'appuntamento (regola temporale)")
 @Tag("security")
 @Tag("forbidden")
-@Tag("temporal")
+@Tag("business-logic")
 void testCreatorDeleteWithin24hForbidden() {
     String uuid = createApptAs(EINSTEIN, 12);
     given().header("Authorization", EINSTEIN)
@@ -588,15 +595,15 @@ void testCreatorDeleteWithin24hForbidden() {
 }
 ```
 
-**✅ Test Positivo - autorizzazione temporale:** lo **stesso** creatore cancella un appuntamento a **più di 24h**
-(48h) e ottiene `200`. La coppia 12h/48h isola esattamente la regola temporale, a parità di identità e azione.
+**✅ Test Positivo - finestra di cancellazione:** lo **stesso** creatore cancella un appuntamento a **più di 24h**
+(48h) e ottiene `200`. La coppia 12h/48h isola esattamente la regola, a parità di identità e azione.
 
 ```java
 @Test
 @DisplayName("(200) il creatore elimina un appuntamento a più di 24h")
 @Tag("security")
 @Tag("authorized")
-@Tag("temporal")
+@Tag("business-logic")
 void testCreatorDeleteMoreThan24hOk() {
     String uuid = createApptAs(EINSTEIN, 48);
     given().header("Authorization", EINSTEIN)
@@ -605,12 +612,80 @@ void testCreatorDeleteMoreThan24hOk() {
 }
 ```
 
+**❌ Test Negativo - doppia prenotazione:** due appuntamenti per lo **stesso scienziato** nello **stesso slot** →
+il secondo riceve `409 Conflict`. Lo slot va catturato una sola volta e riusato, altrimenti due `iso(48)` calcolati
+in momenti diversi potrebbero differire di un secondo.
+
+```java
+@Test
+@DisplayName("(409) niente doppia prenotazione: stesso scienziato sullo stesso slot")
+@Tag("security")
+@Tag("business-logic")
+void testDoubleBookingSameSlotConflict() {
+    String at = iso(48);
+    given().header("Authorization", EINSTEIN)
+            .body(body("FERMI", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
+            .when().post("/doc/appointment")
+            .then().statusCode(Response.Status.CREATED.getStatusCode());
+    given().header("Authorization", EINSTEIN)
+            .body(body("FERMI", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
+            .when().post("/doc/appointment")
+            .then().statusCode(Response.Status.CONFLICT.getStatusCode());
+}
+```
+
+**❌ Test Negativo - orizzonte massimo:** si prova a prenotare oltre 1 anno → `422 Unprocessable Entity`. La stessa
+regola vale sullo spostamento (`testMoveBeyondHorizon`).
+
+```java
+@Test
+@DisplayName("(422) non si può prenotare oltre l'orizzonte massimo (1 anno)")
+@Tag("security")
+@Tag("business-logic")
+void testCreateBeyondHorizon() {
+    given().header("Authorization", EINSTEIN)
+            .body(body("FERMI", iso(366 * 24))).contentType(ContentType.JSON).accept(ContentType.JSON)
+            .when().post("/doc/appointment")
+            .then().statusCode(422);
+}
+```
+
+**❌ Test Negativo - ufficio derivato dallo scienziato (9i):** l'`office` non è più un campo della richiesta: è
+derivato lato server dal **registro scienziati** in base a `scientistUpn` (mai dal client). Over-posting di un
+`office` malevolo → ignorato; l'ufficio risultante è quello dello scienziato. Scienziato sconosciuto → `422`.
+
+```java
+@Test
+@DisplayName("(201) l'ufficio è derivato dallo scienziato: l'office inviato dal client viene IGNORATO")
+@Tag("security")
+@Tag("field-level")
+void testOfficeDerivedFromScientistNotClient() {
+    String malicious = "{\"scientistUpn\": \"FERMI\",\"office\": \"CHIMICA\",\"appointmentAt\": \"%s\",\"subject\": \"x\"}"
+            .formatted(iso(48));
+    given().header("Authorization", EINSTEIN)
+            .body(malicious).contentType(ContentType.JSON).accept(ContentType.JSON)
+            .when().post("/doc/appointment")
+            .then().statusCode(Response.Status.CREATED.getStatusCode())
+            .body("office", Matchers.equalTo("FISICA")); // FERMI è di FISICA nel registro, CHIMICA è ignorato
+}
+```
+
+> 💡 **Sfida (Y), non coperta dai test:** la finestra di cancellazione è imposta solo su `delete`, non su `move`. Un
+> appuntamento entro le 24h può essere **spostato** oltre le 24h e **poi cancellato**, aggirando la regola. Suggerimenti
+> teorici: applicare il controllo delle 24h anche allo spostamento (valutato sulla data **corrente**), oppure vietare lo
+> spostamento di un appuntamento già entro la finestra. Lezione: una regola di business va imposta su **tutte** le
+> operazioni che ne alterano i presupposti.
+
 **Altri test della suite:**
 - ✅ `testCreatorCanView` - **positivo**: il creatore legge il proprio appuntamento → 200.
 - ✅ `testScientistCanView` - **positivo**: lo scienziato destinatario legge l'appuntamento → 200.
 - ✅ `testOfficeAdminCanView` - **positivo**: l'admin dello stesso ufficio legge l'appuntamento → 200.
 - ✅ `testCreatorCanMove` - **positivo** (ownership): solo il creatore sposta l'appuntamento → 200.
 - ✅ `testCreatorUpnIgnored` - **positivo** (mass assignment): `creatorUpn` inviato dal client è ignorato, il creatore è preso dal token → 201 (`creatorUpn == "EINSTEIN"`).
+- ✅ `testDoubleBookingDifferentSlotOk` - **positivo** (business-logic): due appuntamenti per lo stesso scienziato su slot **diversi** sono consentiti → 201.
+- ❌ `testUnknownScientistRejected` - **negativo** (9i): scienziato non nel registro → 422.
+- ✅/❌ `testOfficeFollowsScientistNotCreator` - (9i, tenant): LAVOISIER (CHIMICA) prenota FERMI (FISICA) → l'admin FISICA (BOHR) **vede**, l'admin CHIMICA (MENDELEEV) **no**: l'ufficio segue lo scienziato, non il creatore.
+- ❌ `testMoveBeyondHorizon` - **negativo** (business-logic): spostamento oltre l'orizzonte massimo → 422.
 - ❌ `testCrossOfficeAdminForbidden` - **negativo** (tenant isolation): admin di un altro ufficio → 403.
 - ❌ `testUnrelatedSameOfficeForbidden` - **negativo**: estraneo dello stesso ufficio (non creatore/destinatario/admin) → 403 (la visibilità è per **relazione**, non per ufficio).
 - ❌ `testNonCreatorCannotDelete` - **negativo** (ownership): un non-creatore (anche il destinatario) prova a cancellare → 403.

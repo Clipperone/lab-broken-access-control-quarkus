@@ -57,7 +57,6 @@ public class PersonResource {
     @Path("/add")
     @RolesAllowed("admin")
     @Transactional
-    @SecurityRequirement(name = "SecurityScheme")
     public Response addPerson(@Valid AddPersonRequestDTO request) {
         Person person = new Person();
         person.setUuid(UUID.randomUUID().toString());
@@ -90,7 +89,6 @@ public class PersonResource {
         return this.addPerson(request);
     }
 
-
     @APIResponse(responseCode = "200", description = "La persona è stata creata", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = AddPersonResponseDTO.class)))
     @APIResponse(responseCode = "401", description = "Se l'autenticazione non è presente")
     @APIResponse(responseCode = "403", description = "Se l'utente non è autorizzato per la risorsa")
@@ -101,7 +99,6 @@ public class PersonResource {
     @Path("/find/{uuid}")
     @RolesAllowed({ "admin", "user" })
     @Transactional
-    @SecurityRequirement(name = "SecurityScheme")
     public Response findPerson(@PathParam("uuid") String uuid) {
         Person person = this.personRepository.findByUuid(uuid);
         if (person == null) {
@@ -127,7 +124,6 @@ public class PersonResource {
     @Path("/edit/{uuid}")
     @RolesAllowed({ "admin", "user" })
     @Transactional
-    @SecurityRequirement(name = "SecurityScheme")
     public Response editPerson(@PathParam("uuid") String uuid, @Valid EditPersonRequestDTO request) {
         Person person = this.personRepository.findByUuid(uuid);
         // anti-enumeration + object-level: persona inesistente o non accessibile per il ruolo minimo -> 403 uniforme
@@ -163,7 +159,6 @@ public class PersonResource {
     // le specifiche deve essere consentita solo ad 'admin'. Rimuovere 'user' dall'elenco @RolesAllowed.
     @RolesAllowed({ "admin", "user" })
     @Transactional
-    @SecurityRequirement(name = "SecurityScheme")
     public Response deletePerson(@PathParam("uuid") String uuid) {
         Person person = this.personRepository.findByUuid(uuid);
         if (person == null) {
@@ -183,7 +178,6 @@ public class PersonResource {
     @Path("/list")
     @RolesAllowed({ "admin", "user" })
     @Transactional
-    @SecurityRequirement(name = "SecurityScheme")
     public Response listPersons() {
         return Response.status(Response.Status.OK).entity(this.listAllPersons().stream().map(Person::toDTO).toList()).build();
     }

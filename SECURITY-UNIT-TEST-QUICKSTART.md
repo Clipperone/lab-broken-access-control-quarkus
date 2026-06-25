@@ -163,7 +163,7 @@ I tag seguenti sono **obbligatori**: la loro assenza causa il fallimento di `mvn
 | `field-level` | Campo privilegiato non modificabile dal ruolo del richiedente |
 | `ownership` | Risorsa modificabile solo dall'owner |
 | `tenant` | Isolamento multi-tenant (ufficio/organizzazione) |
-| `temporal` | Autorizzazione dipendente da vincoli temporali |
+| `business-logic` | Regola di business applicata lato server (finestra di cancellazione, doppia prenotazione, orizzonte massimo) |
 
 ---
 
@@ -181,7 +181,7 @@ I tag seguenti sono **obbligatori**: la loro assenza causa il fallimento di `mvn
 
 | Argomento | Riferimento |
 |-----------|-------------|
-| Scenari completi con codice (BOLA, field-level, ownership, multi-tenant, temporal) | [SECURITY-UNIT-TEST.md](SECURITY-UNIT-TEST.md) |
+| Scenari completi con codice (BOLA, field-level, ownership, multi-tenant, business-logic) | [SECURITY-UNIT-TEST.md](SECURITY-UNIT-TEST.md) |
 | Catalogo dei test esistenti per livello di difficoltà | [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) - Sezione 3 |
 | Architettura del progetto e comandi Maven | [README.md](README.md) |
 | Avvio e utilizzo delle API in dev (Swagger UI, console didattica) | [GUIDA-OPERATIVA.md](GUIDA-OPERATIVA.md) - Sezione 1 |

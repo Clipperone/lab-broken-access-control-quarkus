@@ -28,9 +28,11 @@ public class AppointmentRequestDTO {
     @Schema(description = "upn dello scienziato destinatario", examples = { "BOHR" }, required = true)
     private String scientistUpn;
 
-    @NotBlank(message = "L'ufficio è obbligatorio")
+    // VULNERABILITY: (9i) 'office' è server-managed e NON dovrebbe essere esposto nel contratto: la sua presenza
+    // abilita il mass assignment (il client sceglie l'ufficio, scavalcando il tenant). La soluzione è rimuoverlo e
+    // derivare l'ufficio dallo scienziato lato server. Reso opzionale perché i test (identici a main) non lo inviano.
     @Size(max = 128, message = "Nome ufficio troppo lungo")
-    @Schema(description = "ufficio dell'appuntamento", examples = { "FISICA" }, required = true)
+    @Schema(description = "(server-managed) ufficio dell'appuntamento", hidden = true)
     private String office;
 
     @NotNull(message = "La data dell'appuntamento è obbligatoria")
