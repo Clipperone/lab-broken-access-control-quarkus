@@ -37,7 +37,7 @@ import java.util.UUID;
  */
 @Slf4j
 @ApplicationScoped
-@Path("/doc/appointment")
+@Path("/scientist/appointment")
 @RolesAllowed({ "admin", "user", "guest" })
 public class AppointmentResource {
 

@@ -194,7 +194,7 @@ Tabella-indice (classe OWASP A01 × caso d'uso × coppia di test):
 | Modifica persona - `PUT /person/edit/{uuid}` | field-level (`minRole`) + mass assignment | campo privilegiato solo da `admin`; campi server-managed ignorati | `403`, `200` | `testEditPersonUserCannotChangeMinRole` ❌ `testEditPersonUserCanEditAnagraphicFields` ✅ |
 | Note personali - `GET/PUT /doc/note/{uuid}` | ownership | lettura a owner **o** admin; scrittura **solo** owner | `403`, `200` | `testNonOwnerAdminCannotEditNote` ❌ `testAdminReadsAnyNote` ✅ |
 | Documenti d'ufficio - `/doc/officedoc` | tenant isolation + gerarchia ruoli + draft/published + sharing + mass assignment | isolamento per ufficio (anche fra admin); ruolo ≥ owner; bozza solo owner; sharing | `403`, `200` | `testCrossOfficeAdminForbidden` ❌ `testPublishedVisibleToSameOfficeHigherRole` ✅ |
-| Appuntamenti - `/doc/appointment` | tenant/visibilità multi-parte + business-logic + ownership + mass assignment (office derivato dallo scienziato) | visibile a creatore/destinatario/admin d'ufficio; delete solo creatore e > 24h; niente doppia prenotazione (409); orizzonte massimo (422); office dal registro scienziati, non dal client; move solo creatore | `403`, `409`, `422`, `200` | `testCreatorDeleteWithin24hForbidden` ❌ `testCreatorDeleteMoreThan24hOk` ✅ |
+| Appuntamenti - `/scientist/appointment` | tenant/visibilità multi-parte + business-logic + ownership + mass assignment (office derivato dallo scienziato) | visibile a creatore/destinatario/admin d'ufficio; delete solo creatore e > 24h; niente doppia prenotazione (409); orizzonte massimo (422); office dal registro scienziati, non dal client; move solo creatore | `403`, `409`, `422`, `200` | `testCreatorDeleteWithin24hForbidden` ❌ `testCreatorDeleteMoreThan24hOk` ✅ |
 
 ### 1. Generazione documenti
 
@@ -561,7 +561,7 @@ void testMassAssignmentOwnerOfficeIgnored() {
 
 ### 7. Appuntamenti (visibilità multi-parte e regole di business-logic)
 
-- **Endpoint:** `/doc/appointment` (+ `/move`)
+- **Endpoint:** `/scientist/appointment` (+ `/move`)
 - **Suite:** [AppointmentResourceTest](src/test/java/org/fugerit/java/demo/lab/broken/access/control/AppointmentResourceTest.java)
 - **Classi:** tenant/visibilità multi-parte (relationship-based), business-logic (finestra di cancellazione, doppia prenotazione, orizzonte massimo), ownership, mass assignment
 
@@ -590,7 +590,7 @@ contesto, non solo dall'identità.
 void testCreatorDeleteWithin24hForbidden() {
     String uuid = createApptAs(EINSTEIN, 12);
     given().header("Authorization", EINSTEIN)
-            .when().delete("/doc/appointment/%s".formatted(uuid))
+            .when().delete("/scientist/appointment/%s".formatted(uuid))
             .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
 }
 ```
@@ -607,7 +607,7 @@ void testCreatorDeleteWithin24hForbidden() {
 void testCreatorDeleteMoreThan24hOk() {
     String uuid = createApptAs(EINSTEIN, 48);
     given().header("Authorization", EINSTEIN)
-            .when().delete("/doc/appointment/%s".formatted(uuid))
+            .when().delete("/scientist/appointment/%s".formatted(uuid))
             .then().statusCode(Response.Status.OK.getStatusCode());
 }
 ```
@@ -625,11 +625,11 @@ void testDoubleBookingSameSlotConflict() {
     String at = iso(48);
     given().header("Authorization", EINSTEIN)
             .body(body("FERMI", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
-            .when().post("/doc/appointment")
+            .when().post("/scientist/appointment")
             .then().statusCode(Response.Status.CREATED.getStatusCode());
     given().header("Authorization", EINSTEIN)
             .body(body("FERMI", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
-            .when().post("/doc/appointment")
+            .when().post("/scientist/appointment")
             .then().statusCode(Response.Status.CONFLICT.getStatusCode());
 }
 ```
@@ -645,7 +645,7 @@ regola vale sullo spostamento (`testMoveBeyondHorizon`).
 void testCreateBeyondHorizon() {
     given().header("Authorization", EINSTEIN)
             .body(body("FERMI", iso(366 * 24))).contentType(ContentType.JSON).accept(ContentType.JSON)
-            .when().post("/doc/appointment")
+            .when().post("/scientist/appointment")
             .then().statusCode(422);
 }
 ```
@@ -664,7 +664,7 @@ void testOfficeDerivedFromScientistNotClient() {
             .formatted(iso(48));
     given().header("Authorization", EINSTEIN)
             .body(malicious).contentType(ContentType.JSON).accept(ContentType.JSON)
-            .when().post("/doc/appointment")
+            .when().post("/scientist/appointment")
             .then().statusCode(Response.Status.CREATED.getStatusCode())
             .body("office", Matchers.equalTo("FISICA")); // FERMI è di FISICA nel registro, CHIMICA è ignorato
 }

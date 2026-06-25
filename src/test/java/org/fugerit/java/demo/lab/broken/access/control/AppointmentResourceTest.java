@@ -59,7 +59,7 @@ class AppointmentResourceTest {
     private String createApptAs(String auth, long plusHours) {
         return given().header("Authorization", auth)
                 .body(body("FERMI", iso(plusHours))).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().post("/doc/appointment")
+                .when().post("/scientist/appointment")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
                 .extract().path("uuid");
     }
@@ -83,7 +83,7 @@ class AppointmentResourceTest {
     void testCreatorCanView() {
         String uuid = createApptAs(EINSTEIN, 48);
         given().header("Authorization", EINSTEIN)
-                .when().get("/doc/appointment/%s".formatted(uuid))
+                .when().get("/scientist/appointment/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode())
                 .body("creatorUpn", Matchers.equalTo("EINSTEIN"));
     }
@@ -96,7 +96,7 @@ class AppointmentResourceTest {
     void testScientistCanView() {
         String uuid = createApptAs(EINSTEIN, 48);
         given().header("Authorization", FERMI)
-                .when().get("/doc/appointment/%s".formatted(uuid))
+                .when().get("/scientist/appointment/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode());
     }
 
@@ -108,7 +108,7 @@ class AppointmentResourceTest {
     void testOfficeAdminCanView() {
         String uuid = createApptAs(EINSTEIN, 48);
         given().header("Authorization", BOHR)
-                .when().get("/doc/appointment/%s".formatted(uuid))
+                .when().get("/scientist/appointment/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode());
     }
 
@@ -120,7 +120,7 @@ class AppointmentResourceTest {
     void testCrossOfficeAdminForbidden() {
         String uuid = createApptAs(EINSTEIN, 48);
         given().header("Authorization", MENDELEEV)
-                .when().get("/doc/appointment/%s".formatted(uuid))
+                .when().get("/scientist/appointment/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
@@ -132,7 +132,7 @@ class AppointmentResourceTest {
     void testUnrelatedSameOfficeForbidden() {
         String uuid = createApptAs(EINSTEIN, 48);
         given().header("Authorization", PLANCK)
-                .when().get("/doc/appointment/%s".formatted(uuid))
+                .when().get("/scientist/appointment/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
@@ -143,7 +143,7 @@ class AppointmentResourceTest {
     @Tag("object-level")
     void testAntiEnumerationNonExistent() {
         given().header("Authorization", EINSTEIN)
-                .when().get("/doc/appointment/%s".formatted("99999999-9999-9999-9999-999999999999"))
+                .when().get("/scientist/appointment/%s".formatted("99999999-9999-9999-9999-999999999999"))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
@@ -157,7 +157,7 @@ class AppointmentResourceTest {
     void testCreatorDeleteMoreThan24hOk() {
         String uuid = createApptAs(EINSTEIN, 48);
         given().header("Authorization", EINSTEIN)
-                .when().delete("/doc/appointment/%s".formatted(uuid))
+                .when().delete("/scientist/appointment/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode());
     }
 
@@ -169,7 +169,7 @@ class AppointmentResourceTest {
     void testCreatorDeleteWithin24hForbidden() {
         String uuid = createApptAs(EINSTEIN, 12);
         given().header("Authorization", EINSTEIN)
-                .when().delete("/doc/appointment/%s".formatted(uuid))
+                .when().delete("/scientist/appointment/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
@@ -181,7 +181,7 @@ class AppointmentResourceTest {
     void testNonCreatorCannotDelete() {
         String uuid = createApptAs(EINSTEIN, 48);
         given().header("Authorization", FERMI)
-                .when().delete("/doc/appointment/%s".formatted(uuid))
+                .when().delete("/scientist/appointment/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
@@ -197,7 +197,7 @@ class AppointmentResourceTest {
         given().header("Authorization", EINSTEIN)
                 .body("{\"newAppointmentAt\": \"%s\"}".formatted(iso(72))).contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
-                .when().put("/doc/appointment/%s/move".formatted(uuid))
+                .when().put("/scientist/appointment/%s/move".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode());
     }
 
@@ -211,7 +211,7 @@ class AppointmentResourceTest {
         given().header("Authorization", BOHR)
                 .body("{\"newAppointmentAt\": \"%s\"}".formatted(iso(72))).contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
-                .when().put("/doc/appointment/%s/move".formatted(uuid))
+                .when().put("/scientist/appointment/%s/move".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
@@ -226,7 +226,7 @@ class AppointmentResourceTest {
                 .formatted(iso(48));
         given().header("Authorization", EINSTEIN)
                 .body(malicious).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().post("/doc/appointment")
+                .when().post("/scientist/appointment")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
                 .body("creatorUpn", Matchers.equalTo("EINSTEIN"));
     }
@@ -242,11 +242,11 @@ class AppointmentResourceTest {
         String at = iso(48);
         given().header("Authorization", EINSTEIN)
                 .body(body("FERMI", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().post("/doc/appointment")
+                .when().post("/scientist/appointment")
                 .then().statusCode(Response.Status.CREATED.getStatusCode());
         given().header("Authorization", EINSTEIN)
                 .body(body("FERMI", at)).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().post("/doc/appointment")
+                .when().post("/scientist/appointment")
                 .then().statusCode(Response.Status.CONFLICT.getStatusCode());
     }
 
@@ -269,7 +269,7 @@ class AppointmentResourceTest {
     void testCreateBeyondHorizon() {
         given().header("Authorization", EINSTEIN)
                 .body(body("FERMI", iso(366 * 24))).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().post("/doc/appointment")
+                .when().post("/scientist/appointment")
                 .then().statusCode(422);
     }
 
@@ -282,7 +282,7 @@ class AppointmentResourceTest {
         given().header("Authorization", EINSTEIN)
                 .body("{\"newAppointmentAt\": \"%s\"}".formatted(iso(366 * 24))).contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
-                .when().put("/doc/appointment/%s/move".formatted(uuid))
+                .when().put("/scientist/appointment/%s/move".formatted(uuid))
                 .then().statusCode(422);
     }
 
@@ -298,7 +298,7 @@ class AppointmentResourceTest {
                 .formatted(iso(48));
         given().header("Authorization", EINSTEIN)
                 .body(malicious).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().post("/doc/appointment")
+                .when().post("/scientist/appointment")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
                 .body("office", Matchers.equalTo("FISICA"));
     }
@@ -310,7 +310,7 @@ class AppointmentResourceTest {
     void testUnknownScientistRejected() {
         given().header("Authorization", EINSTEIN)
                 .body(body("NONEXISTENT", iso(48))).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().post("/doc/appointment")
+                .when().post("/scientist/appointment")
                 .then().statusCode(422);
     }
 
@@ -323,12 +323,12 @@ class AppointmentResourceTest {
         String uuid = createApptAs(LAVOISIER, 48);
         // l'admin di FISICA (BOHR) lo vede: è il reparto dello scienziato
         given().header("Authorization", BOHR)
-                .when().get("/doc/appointment/%s".formatted(uuid))
+                .when().get("/scientist/appointment/%s".formatted(uuid))
                 .then().statusCode(Response.Status.OK.getStatusCode())
                 .body("office", Matchers.equalTo("FISICA"));
         // l'admin di CHIMICA (MENDELEEV, stesso ufficio del CREATORE) NON lo vede
         given().header("Authorization", MENDELEEV)
-                .when().get("/doc/appointment/%s".formatted(uuid))
+                .when().get("/scientist/appointment/%s".formatted(uuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
