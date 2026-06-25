@@ -10,7 +10,7 @@
 ### Errore 403 Forbidden
 
 - Controlla che l'utente abbia i ruoli necessari per l'endpoint richiesto
-- Riferisciti alla [tabella dei permessi](README.md#mappatura-ruoli--permessi--metodo-http) per verificare quali ruoli sono autorizzati
+- Riferisciti alla [tabella dei permessi](README.md#grana-grossa---autorizzazione-per-ruolo-rbac) per verificare quali ruoli sono autorizzati
 - Verifica che i ruoli siano stati correttamente inclusi nel JWT generato
 
 ### Build fallisce con profilo security
