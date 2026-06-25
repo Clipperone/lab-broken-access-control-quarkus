@@ -290,17 +290,17 @@ Questo laboratorio include numerose vulnerabilità di tipo Broken Access Control
 | (8d) | Privilege escalation: Non-owner edit  | BOLA              | `PUT /doc/officedoc/{uuid}` (non owner/non admin)     |
 | (8e) | Mass Assignment: Server-managed fields | Field-level     | `POST /doc/officedoc` (client sets owner/office/role) |
 | (8f) | Accesso a documenti altrui               | IDOR              | `GET /doc/officedoc/{uuid}`            |
-| (9a) | Tenant isolation: Cross-office access | Tenant            | `GET /doc/appointment/{uuid}` (ufficio diverso)       |
-| (9b) | Over-broad visibility (same office)   | BOLA              | `GET /doc/appointment/{uuid}` (non correlato)         |
-| (9c) | Business logic: finestra di eliminazione (> 24h) | Business Logic | `DELETE /doc/appointment/{uuid}` (< 24h)              |
-| (9d) | Ownership: Non-owner delete/move      | Ownership         | `DELETE /doc/appointment/{uuid}`, `PUT .../move`      |
-| (9e) | Mass Assignment: creatorUpn server-managed | Field-level   | `POST /doc/appointment` (client sets creatorUpn)      |
-| (9f) | Accesso a appuntamenti altrui               | IDOR              | `GET /doc/appointment/{uuid}`            |
-| (9g) | Business logic: doppia prenotazione (stesso scienziato/slot) | Business Logic | `POST /doc/appointment`, `PUT .../move` |
-| (9h) | Business logic: orizzonte massimo di prenotazione (> 1 anno) | Business Logic | `POST /doc/appointment`, `PUT .../move` |
-| (9i) | Mass Assignment / tenant: office derivato dallo scienziato (server-side) | Field-level / Tenant | `POST /doc/appointment` (client sets office) |
+| (9a) | Tenant isolation: Cross-office access | Tenant            | `GET /scientist/appointment/{uuid}` (ufficio diverso)       |
+| (9b) | Over-broad visibility (same office)   | BOLA              | `GET /scientist/appointment/{uuid}` (non correlato)         |
+| (9c) | Business logic: finestra di eliminazione (> 24h) | Business Logic | `DELETE /scientist/appointment/{uuid}` (< 24h)              |
+| (9d) | Ownership: Non-owner delete/move      | Ownership         | `DELETE /scientist/appointment/{uuid}`, `PUT .../move`      |
+| (9e) | Mass Assignment: creatorUpn server-managed | Field-level   | `POST /scientist/appointment` (client sets creatorUpn)      |
+| (9f) | Accesso a appuntamenti altrui               | IDOR              | `GET /scientist/appointment/{uuid}`            |
+| (9g) | Business logic: doppia prenotazione (stesso scienziato/slot) | Business Logic | `POST /scientist/appointment`, `PUT .../move` |
+| (9h) | Business logic: orizzonte massimo di prenotazione (> 1 anno) | Business Logic | `POST /scientist/appointment`, `PUT .../move` |
+| (9i) | Mass Assignment / tenant: office derivato dallo scienziato (server-side) | Field-level / Tenant | `POST /scientist/appointment` (client sets office) |
 | (X) | **Hidden, no test**     | Function-level    | `PUT /person/add`                                 |
-| (Y) | **Hidden, no test** - bypass move-then-delete | Business Logic | `PUT /doc/appointment/{uuid}/move` |
+| (Y) | **Hidden, no test** - bypass move-then-delete | Business Logic | `PUT /scientist/appointment/{uuid}/move` |
 
 > 💡 **Sfida**: le vulnerabilità (X) e (Y) non sono coperte dai test. Riesci a trovarle?
 
@@ -466,7 +466,7 @@ Un utente accede ai documenti di altri uffici o utenti puntando direttamente all
 
 Un admin di un ufficio diverso vede l'appuntamento di un altro ufficio.
 
-**Endpoint**: `GET /doc/appointment/{uuid}` (ufficio CHIMICA), chiamante da FISICA/admin
+**Endpoint**: `GET /scientist/appointment/{uuid}` (ufficio CHIMICA), chiamante da FISICA/admin
 
 **Problema**: Manca il vincolo di isolamento per ufficio
 
@@ -476,7 +476,7 @@ Un admin di un ufficio diverso vede l'appuntamento di un altro ufficio.
 
 Un utente dello stesso ufficio, non creatore e non destinatario dell'appuntamento, vede l'appuntamento.
 
-**Endpoint**: `GET /doc/appointment/{uuid}` (creato da A, destinato a B), viewer è C dello stesso ufficio
+**Endpoint**: `GET /scientist/appointment/{uuid}` (creato da A, destinato a B), viewer è C dello stesso ufficio
 
 **Problema**: Visibilità concessa a "chiunque dello stesso ufficio" invece di solo relazioni (creatore, destinatario, admin)
 
@@ -486,7 +486,7 @@ Un utente dello stesso ufficio, non creatore e non destinatario dell'appuntament
 
 Il creatore riesce a cancellare un appuntamento entro le 24h prima (quando dovrebbe essere vietato). È una regola di **business** la cui rilevanza di sicurezza sta nell'enforcement lato server: il client non deve poterla aggirare.
 
-**Endpoint**: `DELETE /doc/appointment/{uuid}` (cancellazione entro 24h)
+**Endpoint**: `DELETE /scientist/appointment/{uuid}` (cancellazione entro 24h)
 
 **Problema**: Manca il controllo che la cancellazione sia consentita solo se mancano > 24h
 
@@ -496,7 +496,7 @@ Il creatore riesce a cancellare un appuntamento entro le 24h prima (quando dovre
 
 Un non-creatore (anche il destinatario) riesce a cancellare o spostare l'appuntamento.
 
-**Endpoint**: `DELETE /doc/appointment/{uuid}`, `PUT /doc/appointment/{uuid}/move`
+**Endpoint**: `DELETE /scientist/appointment/{uuid}`, `PUT /scientist/appointment/{uuid}/move`
 
 **Problema**: Manca il controllo che solo il creatore possa eliminare/spostare
 
@@ -506,7 +506,7 @@ Un non-creatore (anche il destinatario) riesce a cancellare o spostare l'appunta
 
 Il client riesce a impostare `creatorUpn` nel body della POST.
 
-**Endpoint**: `POST /doc/appointment`
+**Endpoint**: `POST /scientist/appointment`
 
 **Problema**: `creatorUpn` è server-managed ma presente nel DTO request
 
@@ -516,7 +516,7 @@ Il client riesce a impostare `creatorUpn` nel body della POST.
 
 Un utente accede agli appuntamenti di altri utenti puntando direttamente all'UUID, senza controllo di visibilità multi-parte. L'API non verifica che l'utente sia creatore, destinatario o admin dell'ufficio.
 
-**Endpoint**: `GET /doc/appointment/{uuid}` (appuntamento non autorizzato)
+**Endpoint**: `GET /scientist/appointment/{uuid}` (appuntamento non autorizzato)
 
 **Problema**: L'API permette l'accesso diretto ad appuntamenti senza verificare la visibilità multi-parte. Chiunque autenticato legge appuntamenti di cui non è creatore, destinatario né admin dell'ufficio. Come effetto secondario, risposte diverse (200 vs 404) rivelano anche l'esistenza di appuntamenti altrui.
 
@@ -526,7 +526,7 @@ Un utente accede agli appuntamenti di altri utenti puntando direttamente all'UUI
 
 Lo stesso scienziato viene prenotato due volte nello stesso slot temporale. È un invariante di **business** (uno scienziato non può essere in due appuntamenti contemporaneamente) da imporre lato server.
 
-**Endpoint**: `POST /doc/appointment`, `PUT /doc/appointment/{uuid}/move`
+**Endpoint**: `POST /scientist/appointment`, `PUT /scientist/appointment/{uuid}/move`
 
 **Problema**: Manca il controllo di conflitto sullo slot; la creazione/spostamento crea una doppia prenotazione
 
@@ -536,7 +536,7 @@ Lo stesso scienziato viene prenotato due volte nello stesso slot temporale. È u
 
 Si riesce a prenotare/spostare un appuntamento troppo in là nel tempo (es. oltre 1 anno). È una regola di **business** sull'intervallo ammesso, da imporre lato server.
 
-**Endpoint**: `POST /doc/appointment`, `PUT /doc/appointment/{uuid}/move`
+**Endpoint**: `POST /scientist/appointment`, `PUT /scientist/appointment/{uuid}/move`
 
 **Problema**: Manca il limite superiore sulla data dell'appuntamento
 
@@ -546,7 +546,7 @@ Si riesce a prenotare/spostare un appuntamento troppo in là nel tempo (es. oltr
 
 L'`office` di un appuntamento è un input della decisione di autorizzazione (`canView`: l'admin dello stesso ufficio lo vede). Se è preso dal client, un utente può inviare un ufficio arbitrario e far vedere l'appuntamento all'admin di un tenant estraneo (leak) o nasconderlo al proprio (evasione della supervisione).
 
-**Endpoint**: `POST /doc/appointment` (il client invia `office` nel body)
+**Endpoint**: `POST /scientist/appointment` (il client invia `office` nel body)
 
 **Problema**: `office` è server-relevant ma preso dal client; inoltre `scientistUpn` è testo libero non validato
 
@@ -575,7 +575,7 @@ public Response addPersonPut(AddPersonRequestDTO request) {
 
 La finestra di cancellazione (9c) vieta di eliminare un appuntamento se mancano meno di 24h. Tuttavia lo **spostamento** non ha alcun controllo temporale: un utente con un appuntamento entro le 24h può **spostarlo** oltre le 24h e **poi cancellarlo**, aggirando di fatto la regola.
 
-**Endpoint**: `PUT /doc/appointment/{uuid}/move` seguito da `DELETE /doc/appointment/{uuid}`
+**Endpoint**: `PUT /scientist/appointment/{uuid}/move` seguito da `DELETE /scientist/appointment/{uuid}`
 
 **Problema**: il vincolo temporale è applicato solo su `delete`, non su `move`; spostando l'appuntamento si rende nuovamente possibile la cancellazione
 
