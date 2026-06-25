@@ -139,11 +139,11 @@ function bind() {
         scientistUpn: val('a-scientist'),
         appointmentAt: val('a-at') || undefined, subject: val('a-subject'),
     });
-    $('btn-a-create').onclick = async () => maybeUuid(await call('POST', '/doc/appointment', apptBody()), 'a-uuid');
-    $('btn-a-list').onclick = () => call('GET', '/doc/appointment/list');
-    $('btn-a-read').onclick = () => call('GET', '/doc/appointment/' + enc(val('a-uuid')));
-    $('btn-a-move').onclick = () => call('PUT', '/doc/appointment/' + enc(val('a-uuid')) + '/move', { newAppointmentAt: val('a-newat') || undefined });
-    $('btn-a-del').onclick = () => call('DELETE', '/doc/appointment/' + enc(val('a-uuid')));
+    $('btn-a-create').onclick = async () => maybeUuid(await call('POST', '/scientist/appointment', apptBody()), 'a-uuid');
+    $('btn-a-list').onclick = () => call('GET', '/scientist/appointment/list');
+    $('btn-a-read').onclick = () => call('GET', '/scientist/appointment/' + enc(val('a-uuid')));
+    $('btn-a-move').onclick = () => call('PUT', '/scientist/appointment/' + enc(val('a-uuid')) + '/move', { newAppointmentAt: val('a-newat') || undefined });
+    $('btn-a-del').onclick = () => call('DELETE', '/scientist/appointment/' + enc(val('a-uuid')));
 
     window.addEventListener('identity-changed', renderIdentity);
     window.addEventListener('identity-changed', loadScientists);

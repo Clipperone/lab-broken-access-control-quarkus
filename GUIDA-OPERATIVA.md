@@ -25,7 +25,7 @@ più basilare al più avanzato. Per il *come progettare* i test vedi [SECURITY-U
 ### Identità e dati demo per gli scenari a grana fine
 
 Per provare interattivamente gli scenari **ownership** (`/doc/note`), **multi-tenant** (`/doc/officedoc`)
-e **appuntamenti** (`/doc/appointment`) genera il token via `GET /demo/office/{office}/{upn}/{roles}.txt`:
+e **appuntamenti** (`/scientist/appointment`) genera il token via `GET /demo/office/{office}/{upn}/{roles}.txt`:
 
 | upn       | ufficio | ruoli | token demo                                            |
 |-----------|---------|-------|-------------------------------------------------------|
@@ -106,15 +106,15 @@ accede *nemmeno se admin*.
 > Invarianti trasversali dello scenario di ufficio: **isolamento di tenant assoluto** (un altro ufficio non
 > accede nemmeno se admin) e **anti-enumeration** (uuid inesistente → 403 identico al "non autorizzato").
 
-### `AppointmentResource` - appuntamenti / visibilità multi-parte + business-logic (`/doc/appointment`)
+### `AppointmentResource` - appuntamenti / visibilità multi-parte + business-logic (`/scientist/appointment`)
 
 | Metodo & Path | operationId | Accesso | Descrizione |
 |---------------|-------------|---------|-------------|
-| `POST /doc/appointment` | createAppointment | autenticato | Prenota un appuntamento; **creatore dal token**, scienziato/data dal body, **ufficio derivato dallo scienziato** (registro, mai dal client); scienziato ignoto → 422; business-logic: niente doppia prenotazione (409), orizzonte massimo (422) |
-| `GET /doc/appointment/list` | listAppointments | autenticato | Gli appuntamenti visibili al chiamante |
-| `GET /doc/appointment/{uuid}` | readAppointment | creatore, destinatario o admin di ufficio | Legge un appuntamento |
-| `DELETE /doc/appointment/{uuid}` | deleteAppointment | **solo creatore, e solo > 24h prima** | Elimina (finestra di cancellazione) |
-| `PUT /doc/appointment/{uuid}/move` | moveAppointment | **solo creatore** | Sposta l'appuntamento; business-logic: niente doppia prenotazione (409), orizzonte massimo (422) |
+| `POST /scientist/appointment` | createAppointment | autenticato | Prenota un appuntamento; **creatore dal token**, scienziato/data dal body, **ufficio derivato dallo scienziato** (registro, mai dal client); scienziato ignoto → 422; business-logic: niente doppia prenotazione (409), orizzonte massimo (422) |
+| `GET /scientist/appointment/list` | listAppointments | autenticato | Gli appuntamenti visibili al chiamante |
+| `GET /scientist/appointment/{uuid}` | readAppointment | creatore, destinatario o admin di ufficio | Legge un appuntamento |
+| `DELETE /scientist/appointment/{uuid}` | deleteAppointment | **solo creatore, e solo > 24h prima** | Elimina (finestra di cancellazione) |
+| `PUT /scientist/appointment/{uuid}/move` | moveAppointment | **solo creatore** | Sposta l'appuntamento; business-logic: niente doppia prenotazione (409), orizzonte massimo (422) |
 | `GET /scientist/list` | listScientists | autenticato | Elenco del registro scienziati (upn, ufficio) - alimenta la tendina della console |
 
 > Visibilità **multi-parte**: creatore O scienziato destinatario O admin dello stesso ufficio. L'**ufficio** dell'appuntamento è quello dello **scienziato** (derivato lato server dal registro `Scientist`, mai dal client). Oltre all'ownership valgono regole di **business-logic** imposte lato server: finestra di cancellazione (delete solo se mancano > 24h), niente doppia prenotazione dello stesso scienziato/slot, orizzonte massimo di prenotazione.
