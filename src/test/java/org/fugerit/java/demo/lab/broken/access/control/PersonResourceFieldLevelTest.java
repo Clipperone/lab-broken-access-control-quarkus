@@ -1,6 +1,7 @@
 package org.fugerit.java.demo.lab.broken.access.control;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,20 @@ class PersonResourceFieldLevelTest {
                 .extract().path("uuid");
     }
 
+    /** Precondizione condivisa dai test di edit: uuid di una persona con {@code minRole=guest}. */
+    private String guestPersonUuid;
+
+    /**
+     * La creazione della persona di partenza è una PRECONDIZIONE dei test di edit, non l'oggetto del
+     * test: sta nel {@code @BeforeEach} e non nel corpo del test, così un eventuale fallimento della
+     * preparazione è attribuito al setup (errore di lifecycle) e non all'asserzione sotto esame.
+     */
+    @BeforeEach
+    void setUp() {
+        guestPersonUuid = createPersonAsAdmin(
+                "{\"firstName\": \"ROSALIND\",\"lastName\": \"FRANKLIN\",\"title\": \"Chimica\",\"minRole\": \"guest\"}");
+    }
+
     // --- Mass assignment: i campi server-controlled non sono sovrascrivibili dal client ---
 
     @Test
@@ -55,13 +70,12 @@ class PersonResourceFieldLevelTest {
         // includo campi che il DTO di richiesta NON espone
         String maliciousBody = "{\"firstName\": \"LISE\",\"lastName\": \"MEITNER\",\"title\": \"Fisica\",\"minRole\": \"guest\","
                 + "\"uuid\": \"" + attackerUuid + "\",\"id\": 999999,\"creationDate\": \"2000-01-01T00:00:00\"}";
-        String returnedUuid = 
-                given()
-                        .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateAdminToken())
-                        .body(maliciousBody).contentType(ContentType.JSON).accept(ContentType.JSON)
+        String returnedUuid = given()
+                .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateAdminToken())
+                .body(maliciousBody).contentType(ContentType.JSON).accept(ContentType.JSON)
                 .when().post("/person/add")
                 .then().statusCode(Response.Status.CREATED.getStatusCode())
-                        .extract().path("uuid");
+                .extract().path("uuid");
         log.info("testAddPersonIgnoresServerControlledFields returnedUuid : {}", returnedUuid);
         Assertions.assertNotEquals(attackerUuid, returnedUuid,
                 "L'uuid deve essere generato dal server, non accettato dal body (mass assignment)");
@@ -76,15 +90,13 @@ class PersonResourceFieldLevelTest {
     @Tag("forbidden")
     @Tag("field-level")
     void testEditPersonUserCannotChangeMinRole() {
-        String uuid = createPersonAsAdmin(
-                "{\"firstName\": \"ROSALIND\",\"lastName\": \"FRANKLIN\",\"title\": \"Chimica\",\"minRole\": \"guest\"}");
         // lo 'user' tenta di alzare la visibilità della persona impostando minRole=admin -> 403
         given()
                 .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateUserToken())
                 .body("{\"firstName\": \"ROSALIND\",\"lastName\": \"FRANKLIN\",\"title\": \"Chimica\",\"minRole\": \"admin\"}")
                 .contentType(ContentType.JSON).accept(ContentType.JSON)
-        .when().put("/person/edit/%s".formatted(uuid))
-        .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
+                .when().put("/person/edit/%s".formatted(guestPersonUuid))
+                .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
     @Test
@@ -93,18 +105,15 @@ class PersonResourceFieldLevelTest {
     @Tag("authorized")
     @Tag("field-level")
     void testEditPersonUserCanEditAnagraphicFields() {
-        String uuid = createPersonAsAdmin(
-                "{\"firstName\": \"ROSALIND\",\"lastName\": \"FRANKLIN\",\"title\": \"Chimica\",\"minRole\": \"guest\"}");
         // request SENZA minRole: modifica consentita, il campo privilegiato non viene toccato
-        String minRoleDopo = 
-                given()
-                        .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateUserToken())
-                        .body("{\"firstName\": \"ROSALIND ELSIE\",\"lastName\": \"FRANKLIN\",\"title\": \"Biofisica\"}")
-                        .contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().put("/person/edit/%s".formatted(uuid))
+        String minRoleDopo = given()
+                .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateUserToken())
+                .body("{\"firstName\": \"ROSALIND ELSIE\",\"lastName\": \"FRANKLIN\",\"title\": \"Biofisica\"}")
+                .contentType(ContentType.JSON).accept(ContentType.JSON)
+                .when().put("/person/edit/%s".formatted(guestPersonUuid))
                 .then().statusCode(Response.Status.OK.getStatusCode())
-                        .body("title", org.hamcrest.Matchers.equalTo("Biofisica"))
-                        .extract().path("minRole");
+                .body("title", org.hamcrest.Matchers.equalTo("Biofisica"))
+                .extract().path("minRole");
         Assertions.assertEquals("guest", minRoleDopo,
                 "minRole non deve cambiare per effetto di una modifica fatta da un 'user'");
     }
@@ -115,13 +124,11 @@ class PersonResourceFieldLevelTest {
     @Tag("authorized")
     @Tag("field-level")
     void testEditPersonAdminCanChangeMinRole() {
-        String uuid = createPersonAsAdmin(
-                "{\"firstName\": \"ROSALIND\",\"lastName\": \"FRANKLIN\",\"title\": \"Chimica\",\"minRole\": \"guest\"}");
         given()
                 .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateAdminToken())
                 .body("{\"firstName\": \"ROSALIND\",\"lastName\": \"FRANKLIN\",\"title\": \"Chimica\",\"minRole\": \"admin\"}")
                 .contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().put("/person/edit/%s".formatted(uuid))
+                .when().put("/person/edit/%s".formatted(guestPersonUuid))
                 .then().statusCode(Response.Status.OK.getStatusCode())
                 .body("minRole", org.hamcrest.Matchers.equalTo("admin"));
     }

@@ -1,15 +1,16 @@
 package org.fugerit.java.demo.lab.broken.access.control;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.restassured.http.ContentType;
-import jakarta.ws.rs.core.Response;
-import lombok.extern.slf4j.Slf4j;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import io.quarkus.test.junit.QuarkusTest;
 import static io.restassured.RestAssured.given;
+import io.restassured.http.ContentType;
+import jakarta.ws.rs.core.Response;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * ESEMPIO DI RIFERIMENTO — Ownership-based access control (SCENARIO 1).
@@ -40,15 +41,27 @@ class PersonalNoteResourceTest {
                 .extract().path("uuid");
     }
 
+    /** Precondizione condivisa: uuid della nota di proprietà di EINSTEIN riusata dai test. */
+    private String ownedNoteUuid;
+
+    /**
+     * La creazione della nota è una PRECONDIZIONE, non l'oggetto del test: sta nel {@code @BeforeEach}
+     * e non nel corpo del test, così un eventuale fallimento della preparazione è attribuito al setup
+     * (segnalato come errore di lifecycle) e non all'asserzione autorizzativa sotto esame.
+     */
+    @BeforeEach
+    void setUp() {
+        ownedNoteUuid = createNoteAs(EINSTEIN);
+    }
+
     @Test
     @DisplayName("(200) ownership: l'owner legge la propria nota")
     @Tag("security")
     @Tag("authorized")
     @Tag("ownership")
     void testOwnerReadsOwnNote() {
-        String uuid = createNoteAs(EINSTEIN);
         given().header("Authorization", EINSTEIN)
-                .when().get("/doc/note/%s".formatted(uuid))
+                .when().get("/doc/note/%s".formatted(ownedNoteUuid))
                 .then().statusCode(Response.Status.OK.getStatusCode())
                 .body("ownerUpn", Matchers.equalTo("EINSTEIN"));
     }
@@ -59,9 +72,8 @@ class PersonalNoteResourceTest {
     @Tag("authorized")
     @Tag("ownership")
     void testAdminReadsAnyNote() {
-        String uuid = createNoteAs(EINSTEIN);
         given().header("Authorization", BOHR_ADMIN)
-                .when().get("/doc/note/%s".formatted(uuid))
+                .when().get("/doc/note/%s".formatted(ownedNoteUuid))
                 .then().statusCode(Response.Status.OK.getStatusCode());
     }
 
@@ -71,9 +83,8 @@ class PersonalNoteResourceTest {
     @Tag("forbidden")
     @Tag("ownership")
     void testOtherUserCannotReadNote() {
-        String uuid = createNoteAs(EINSTEIN);
         given().header("Authorization", PLANCK)
-                .when().get("/doc/note/%s".formatted(uuid))
+                .when().get("/doc/note/%s".formatted(ownedNoteUuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
@@ -83,11 +94,10 @@ class PersonalNoteResourceTest {
     @Tag("authorized")
     @Tag("ownership")
     void testOwnerCanEditNote() {
-        String uuid = createNoteAs(EINSTEIN);
         given().header("Authorization", EINSTEIN)
                 .body("{\"title\": \"Promemoria aggiornato\",\"content\": \"nuovo contenuto\"}")
                 .contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().put("/doc/note/%s".formatted(uuid))
+                .when().put("/doc/note/%s".formatted(ownedNoteUuid))
                 .then().statusCode(Response.Status.OK.getStatusCode())
                 .body("title", Matchers.equalTo("Promemoria aggiornato"));
     }
@@ -98,10 +108,9 @@ class PersonalNoteResourceTest {
     @Tag("forbidden")
     @Tag("ownership")
     void testNonOwnerAdminCannotEditNote() {
-        String uuid = createNoteAs(EINSTEIN);
         given().header("Authorization", BOHR_ADMIN)
                 .body(NOTE_JSON).contentType(ContentType.JSON).accept(ContentType.JSON)
-                .when().put("/doc/note/%s".formatted(uuid))
+                .when().put("/doc/note/%s".formatted(ownedNoteUuid))
                 .then().statusCode(Response.Status.FORBIDDEN.getStatusCode());
     }
 
