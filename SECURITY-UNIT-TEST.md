@@ -13,9 +13,10 @@ Questi test **complementano, non sostituiscono**, SAST e DAST: SAST/DAST aiutano
   - [Scopo e approccio](#scopo-e-approccio)
   - [Autenticazione vs Autorizzazione (401 vs 403)](#autenticazione-vs-autorizzazione-401-vs-403)
   - [Struttura di uno Unit Test per il controllo autorizzativo](#struttura-di-uno-unit-test-per-il-controllo-autorizzativo)
-    - [given - prepara stato, dati e identità](#given--prepara-stato-dati-e-identità)
-    - [when - esegue la singola azione sotto esame](#when--esegue-la-singola-azione-sotto-esame)
-    - [then - verifica esito ed effetto reale](#then--verifica-esito-ed-effetto-reale)
+    - [given - prepara stato, dati e identità](#given---prepara-stato-dati-e-identità)
+    - [when - esegue la singola azione sotto esame](#when---esegue-la-singola-azione-sotto-esame)
+      - [Dove mettere il setup: `@BeforeEach` vs given inline](#dove-mettere-il-setup-beforeeach-vs-given-inline)
+    - [then - verifica esito ed effetto reale](#then---verifica-esito-ed-effetto-reale)
   - [Pattern \& anti-pattern](#pattern--anti-pattern)
     - [Scelta del token factory](#scelta-del-token-factory)
     - [Anti-pattern da evitare](#anti-pattern-da-evitare)
@@ -90,7 +91,21 @@ Regola pratica:
 
 > **Un test = una decisione autorizzativa = una azione.**
 
-Se servono più azioni per verificare comportamenti diversi, creare test separati. Le eventuali chiamate di setup, ad esempio `createPersonAsAdmin(...)`, sono accettabili purché restino parte del `given` e non siano l'oggetto del test.
+Se servono più azioni per verificare comportamenti diversi, creare test separati. Le eventuali chiamate di setup, ad esempio `createPersonAsAdmin(...)`, non sono l'oggetto del test: sono **precondizioni**. Quando sono **condivise e identiche** tra più test conviene spostarle in un metodo `@BeforeEach` (vedi sotto), invece di ripeterle all'inizio del blocco `given` di ogni test.
+
+#### Dove mettere il setup: `@BeforeEach` vs given inline
+
+Anche il blocco `given` è codice del metodo di test: se una chiamata di preparazione fallisce lì, JUnit segna il **test** come *failed*, e a colpo d'occhio dal report non si distingue se a rompersi è stata la *preparazione* o la *decisione autorizzativa* che volevi davvero verificare.
+
+Per evitare l'ambiguità, le precondizioni **condivise** (stessa creazione dati per più test) si spostano in un metodo annotato con `@BeforeEach` (o `@BeforeAll` per setup costoso e immutabile). Vantaggi:
+
+- **Attribuzione chiara del fallimento.** Un errore in `@BeforeEach` è riportato da JUnit come fallimento del *ciclo di vita* (con lo stack trace che punta al setup), distinto dall'asserzione sotto esame nel corpo del test.
+- **Meno rumore nel test.** Il metodo di test contiene solo *when* + *then*: l'azione autorizzativa e la sua verifica.
+- **Isolamento.** Ogni test riparte da uno stato fresco (`@BeforeEach` gira prima di ognuno); usa `@AfterEach` per ripulire gli effetti collaterali (vedi `AppointmentResourceTest`).
+
+Puoi rendere il fallimento del setup ancora più esplicito facendo risultare il test **aborted/skipped** invece che *failed*: con `Assumptions.assumeTrue(condizione)` (o lanciando `TestAbortedException`) nel setup, se una precondizione non è soddisfatta il test viene *saltato* - così nel report è evidente che non è stato eseguito perché mancava la preparazione, non perché il controllo autorizzativo ha fallito.
+
+Restano invece **inline nel `given`** i setup **piccoli o variabili per test** (payload/identità/parametri diversi a ogni test): in quei casi tenerli nel corpo del test è più leggibile e ne mostra esplicitamente le differenze. In sintesi: precondizione condivisa e identica → `@BeforeEach`; setup specifico del singolo test → inline nel `given`.
 
 ### then - verifica esito ed effetto reale
 
@@ -106,17 +121,25 @@ Un test ben fatto contiene **due assert complementari**, che rispondono a due do
 In breve: lo *status* certifica che il controllo è scattato, l'*effetto* certifica che ha prodotto la conseguenza giusta. Saltare il secondo assert è l'errore più comune e lascia passare proprio le vulnerabilità di Broken Access Control che vogliamo intercettare.
 
 ```java
+// precondizione condivisa: creata UNA volta prima di ogni test → un fallimento qui
+// è attribuito al setup, non all'asserzione autorizzativa sotto esame
+private String guestPersonUuid;
+
+@BeforeEach
+void setUp() {
+    guestPersonUuid = createPersonAsAdmin(/* ... minRole=guest ... */);   // given: stato iniziale
+}
+
 @Test
 @DisplayName("(403) field-level: un 'user' NON può modificare il campo privilegiato minRole")
 @Tag("security")          // 1) tag generico di sicurezza (eseguito dal profilo `security`)
 @Tag("forbidden")         // 2) esito HTTP atteso
 @Tag("field-level")       // 3) classe di vulnerabilità (verificata dal gate)
 void testEditPersonUserCannotChangeMinRole() {
-    String uuid = createPersonAsAdmin(/* ... minRole=guest ... */);   // given: stato iniziale
     given()                                                            // when
         .header("Authorization", "Bearer " + DemoJwtGeneratorRest.generateUserToken())
         .body("{... \"minRole\": \"admin\"}").contentType(JSON)
-    .when().put("/person/edit/%s".formatted(uuid))
+    .when().put("/person/edit/%s".formatted(guestPersonUuid))
     .then().statusCode(403);                                           // then: status
 }
 ```
@@ -126,7 +149,7 @@ Principi:
 1. **Scrivere sempre** il caso negativo *e* quello positivo. Il 403 dimostra che il controllo c'è; il 200 dimostra che non hai rotto la funzionalità.
 2. **Verificare l'effetto, non solo lo status.** Es. dopo una modifica, controlla che il campo testato sia *rimasto invariato* (`testEditPersonUserCanEditAnagraphicFields`), o che la lista *non contenga* i dati riservati (`testListPersonsResultKo`).
 3. **Identità: `@TestSecurity` o JWT.** Usa `@TestSecurity(roles=...)` per fissare una identità singola; usa i JWT di `DemoJwtGeneratorRest` quando un test richiede **più identità** (es. *admin crea, user modifica*).
-4. **Isolare i dati.** Non utilizzare dati pre-caricati: crea dati nuovi nel test (vedi `createPersonAsAdmin`).
+4. **Isolare i dati.** Non utilizzare dati pre-caricati: crea dati nuovi nel test (vedi `createPersonAsAdmin`). Le precondizioni condivise e identiche a più test mettile in `@BeforeEach` e ripulisci gli effetti in `@AfterEach`, così un fallimento della preparazione è attribuito al setup e non all'asserzione sotto esame.
 5. **Messaggi di assert utili.** `assertEquals("guest", minRoleDopo, "minRole non deve cambiare ...")` aiuta chi legge in caso di test fallito.
 
 ## Pattern & anti-pattern
@@ -139,6 +162,7 @@ Principi:
   - il negativo dimostra che il controllo blocca l'abuso
   - il positivo dimostra che la funzionalità legittima non è stata rotta
 - Creare i dati necessari per il test all'interno del test stesso, non utilizzare i dati pre-caricati.
+- Spostare le precondizioni condivise e identiche in `@BeforeEach` (e ripulire in `@AfterEach`): un fallimento della preparazione risulta così un errore di setup, non un fallimento dell'asserzione sotto esame.
 - Per i modifiche sui campi che riguardano il profilo o ruolo di un utente, che cambiano quindi il suo livello di autorizzazione, gestire sempre **lato server** con dati prelevati **lato server**; la validazione di tipo whitelist (es. il valore di minRole può essere solo uno tra guest|user|admin) è un filtro aggiuntivo, non un controllo di autorizzazione.
 - Usare DTO separati per direzione e privilegi: request vs response, admin request vs user request, public response vs internal response.
 
